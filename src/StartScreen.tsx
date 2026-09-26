@@ -1,5 +1,4 @@
-```tsx
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import type { HighScoreEntry } from "./useHighScores";
 
 interface Props {
@@ -20,7 +19,7 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
     if (!ctx) return;
 
     const draw = () => {
-      tRef.current++;
+      tRef.current += 1;
       const t = tRef.current;
       const W = canvas.width;
       const H = canvas.height;
@@ -138,53 +137,91 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
     return () => cancelAnimationFrame(animRef.current);
   }, []);
 
-  return (
-
-```
-
-```html
-<canvas width="{800}" height="{500}" />
-```
-
-MOTO
-
-TYPE RACER
-
-CREATED BY LAEEQ KHAN JADOON
-
-START RACE
-
-How to Play
-
-Type matching letters to accelerate your bike
-
-Correct letters glow green, errors drain health
-
-Chain words for combo multipliers and turbo boost
-
-{highScores.length > 0 && (
-
-High Scores
-
-clear
-
-{highScores.slice(0, 5).map((s, i) => (
-
-{i + 1}.
-
-{s.name}
-
-{s.score.toLocaleString()}
-
-{s.wpm} wpm
-
-))}
-
-)}
-
-);
+  return React.createElement(
+    "div",
+    { className: "absolute inset-0 flex flex-col items-center justify-center select-none" },
+    React.createElement("canvas", {
+      ref: canvasRef,
+      width: 800,
+      height: 500,
+      className: "absolute inset-0 w-full h-full object-cover",
+    }),
+    React.createElement(
+      "div",
+      { className: "relative z-10 flex flex-col items-center gap-6 px-6 max-w-lg w-full" },
+      React.createElement(
+        "div",
+        { className: "text-center" },
+        React.createElement(
+          "div",
+          {
+            className: "text-5xl md:text-6xl font-black text-white tracking-tight leading-none",
+            style: { fontFamily: "'Orbitron', monospace", textShadow: "0 0 30px #FF6600, 0 0 60px #FF3300" },
+          },
+          "MOTO"
+        ),
+        React.createElement(
+          "div",
+          {
+            className: "text-3xl md:text-4xl font-black tracking-widest text-cyan-300",
+            style: { fontFamily: "'Orbitron', monospace", textShadow: "0 0 20px #00FFCC" },
+          },
+          "TYPE RACER"
+        ),
+        React.createElement(
+          "div",
+          { className: "text-xs text-cyan-400 font-mono tracking-widest mt-2 uppercase font-bold" },
+          "CREATED BY LAEEQ KHAN JADOON"
+        )
+      ),
+      React.createElement(
+        "button",
+        {
+          onClick: onStart,
+          className: "px-12 py-4 text-xl font-black tracking-widest text-black uppercase rounded-xl transition-all active:scale-95 cursor-pointer",
+          style: {
+            fontFamily: "'Orbitron', monospace",
+            background: "linear-gradient(135deg, #00FFCC, #00FF88, #FFDD00)",
+            boxShadow: "0 0 30px rgba(0,255,200,0.6)",
+          },
+        },
+        "START RACE"
+      ),
+      React.createElement(
+        "div",
+        { className: "bg-black/60 backdrop-blur-sm border border-cyan-500/20 rounded-xl px-6 py-4 text-center space-y-1 w-full text-xs text-white/70 font-mono" },
+        React.createElement("p", { className: "text-cyan-300 font-bold uppercase tracking-wider" }, "How to Play"),
+        React.createElement("p", null, "Type matching letters to accelerate your bike"),
+        React.createElement("p", null, "Chain words for combo multipliers & TURBO BOOST")
+      ),
+      highScores && highScores.length > 0
+        ? React.createElement(
+            "div",
+            { className: "bg-black/70 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 w-full font-mono text-xs" },
+            React.createElement(
+              "div",
+              { className: "flex items-center justify-between mb-2 text-yellow-400 font-bold uppercase tracking-widest" },
+              React.createElement("span", null, "High Scores"),
+              React.createElement(
+                "button",
+                { onClick: onClearScores, className: "text-white/30 hover:text-white/60 lowercase" },
+                "clear"
+              )
+            ),
+            React.createElement(
+              "div",
+              { className: "space-y-1 max-h-32 overflow-y-auto" },
+              highScores.slice(0, 5).map((s, i) =>
+                React.createElement(
+                  "div",
+                  { key: i, className: "flex items-center justify-between text-white/80" },
+                  React.createElement("span", null, `#\({i + 1}\){s.name}`),
+                  React.createElement("span", { className: "text-cyan-300 font-bold" }, `${s.score.toLocaleString()} pts`)
+                )
+              )
+            )
+          )
+        : null
+    )
+  );
 }
-
-```
-
-```
