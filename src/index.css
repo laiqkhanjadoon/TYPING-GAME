@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  body {
+    background: #050010;
+    color: white;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Prevent double-tap zoom on mobile */
+  * {
+    touch-action: manipulation;
+  }
+}
+
+@layer utilities {
+  .text-glow-cyan {
+    text-shadow: 0 0 10px #00FFFF, 0 0 20px #00FFFF;
+  }
+  
+  .text-glow-green {
+    text-shadow: 0 0 10px #00FF88, 0 0 20px #00FF88;
+  }
+  
+  .text-glow-orange {
+    text-shadow: 0 0 10px #FF6600, 0 0 20px #FF6600;
+  }
+
+  .border-glow-cyan {
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3), inset 0 0 10px rgba(0, 255, 255, 0.05);
+  }
+}
+
+/* Orbitron font for game UI */
+.font-game {
+  font-family: 'Orbitron', monospace;
+}
+
+/* Ensure canvas renders crisp */
+canvas {
+  display: block;
+}
