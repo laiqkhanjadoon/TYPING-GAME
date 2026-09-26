@@ -18,7 +18,7 @@ function SpeedMeter({ speed, boost }: { speed: number; boost: boolean }) {
   const angle = -135 + pct * 270;
 
   return (
-    <div className="relative w-20 h-20 md:w-24 md:h-24">
+    <div className="relative w-28 h-28 md:w-36 md:h-36 ">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         {/* Background arc */}
         <path
