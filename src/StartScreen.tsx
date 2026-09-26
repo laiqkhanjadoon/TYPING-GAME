@@ -1,8 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HighScoreEntry } from "./useHighScores";
+import {
+  DEFAULT_GAME_SETTINGS,
+  DIFFICULTY_SETTINGS,
+  VEHICLE_SETTINGS,
+  type Difficulty,
+  type GameSettings,
+  type TypingMode,
+  type VehicleType,
+} from "./gameTypes";
 
 interface Props {
-  onStart: () => void;
+  onStart: (settings: GameSettings) => void;
   highScores: HighScoreEntry[];
   onClearScores: () => void;
 }
@@ -13,15 +22,18 @@ export default function StartScreen({
   onClearScores,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animRef = useRef<number>(0);
-  const timeRef = useRef(0);
-
   const screenRef = useRef<HTMLDivElement>(null);
   const spotlightRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number>(0);
+
+  const [settings, setSettings] = useState<GameSettings>(
+    DEFAULT_GAME_SETTINGS
+  );
 
   /* ---------------------------------------------
-     MOUSE FOLLOWING GLASS EFFECT
+     MOUSE EFFECT
   --------------------------------------------- */
+
   useEffect(() => {
     const screen = screenRef.current;
     const spotlight = spotlightRef.current;
@@ -34,8 +46,8 @@ export default function StartScreen({
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      const rotateX = ((y / rect.height) - 0.5) * -2.5;
-      const rotateY = ((x / rect.width) - 0.5) * 2.5;
+      const rotateX = ((y / rect.height) - 0.5) * -2;
+      const rotateY = ((x / rect.width) - 0.5) * 2;
 
       spotlight.style.transform =
         "translate(" +
@@ -46,31 +58,58 @@ export default function StartScreen({
 
       spotlight.style.opacity = "1";
 
-      screen.style.setProperty("--mx", x + "px");
-      screen.style.setProperty("--my", y + "px");
-      screen.style.setProperty("--rx", rotateX + "deg");
-      screen.style.setProperty("--ry", rotateY + "deg");
+      screen.style.setProperty(
+        "--rotate-x",
+        rotateX + "deg"
+      );
+
+      screen.style.setProperty(
+        "--rotate-y",
+        rotateY + "deg"
+      );
     };
 
     const handlePointerLeave = () => {
       spotlight.style.opacity = "0";
 
-      screen.style.setProperty("--rx", "0deg");
-      screen.style.setProperty("--ry", "0deg");
+      screen.style.setProperty(
+        "--rotate-x",
+        "0deg"
+      );
+
+      screen.style.setProperty(
+        "--rotate-y",
+        "0deg"
+      );
     };
 
-    screen.addEventListener("pointermove", handlePointerMove);
-    screen.addEventListener("pointerleave", handlePointerLeave);
+    screen.addEventListener(
+      "pointermove",
+      handlePointerMove
+    );
+
+    screen.addEventListener(
+      "pointerleave",
+      handlePointerLeave
+    );
 
     return () => {
-      screen.removeEventListener("pointermove", handlePointerMove);
-      screen.removeEventListener("pointerleave", handlePointerLeave);
+      screen.removeEventListener(
+        "pointermove",
+        handlePointerMove
+      );
+
+      screen.removeEventListener(
+        "pointerleave",
+        handlePointerLeave
+      );
     };
   }, []);
 
   /* ---------------------------------------------
-     ANIMATED CANVAS BACKGROUND
+     ANIMATED BACKGROUND
   --------------------------------------------- */
+
   useEffect(() => {
     const canvas = canvasRef.current;
 
@@ -81,9 +120,13 @@ export default function StartScreen({
     if (!ctx) return;
 
     let running = true;
+    let time = 0;
 
     const resizeCanvas = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(
+        window.devicePixelRatio || 1,
+        2
+      );
 
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -92,90 +135,157 @@ export default function StartScreen({
       canvas.height = Math.floor(height * dpr);
 
       /*
-       * Deliberately using string concatenation instead of
-       * template literals here to avoid accidental quote errors.
+       * IMPORTANT:
+       * Use string concatenation here.
+       * This avoids the ${...} syntax error
+       * that happened in the previous Vercel build.
        */
       canvas.style.width = width + "px";
       canvas.style.height = height + "px";
 
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0
+      );
     };
 
     resizeCanvas();
 
-    window.addEventListener("resize", resizeCanvas);
+    window.addEventListener(
+      "resize",
+      resizeCanvas
+    );
 
     const draw = () => {
       if (!running) return;
 
-      timeRef.current += 1;
+      time += 1;
 
-      const t = timeRef.current;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-
-      /* ---------------------------------------------
+      /* -----------------------------------------
          BACKGROUND
-      --------------------------------------------- */
+      ----------------------------------------- */
 
-      const background = ctx.createLinearGradient(0, 0, 0, H);
+      const background = ctx.createLinearGradient(
+        0,
+        0,
+        0,
+        height
+      );
 
-      background.addColorStop(0, "#05000f");
-      background.addColorStop(0.45, "#15002a");
-      background.addColorStop(1, "#061b35");
+      background.addColorStop(
+        0,
+        "#04000b"
+      );
+
+      background.addColorStop(
+        0.5,
+        "#120021"
+      );
+
+      background.addColorStop(
+        1,
+        "#03172a"
+      );
 
       ctx.fillStyle = background;
-      ctx.fillRect(0, 0, W, H);
 
-      /* ---------------------------------------------
-         CYAN AMBIENT GLOW
-      --------------------------------------------- */
-
-      const cyanGlow = ctx.createRadialGradient(
-        W * 0.18,
-        H * 0.18,
+      ctx.fillRect(
         0,
-        W * 0.18,
-        H * 0.18,
-        280
+        0,
+        width,
+        height
       );
 
-      cyanGlow.addColorStop(0, "rgba(0,255,204,0.18)");
-      cyanGlow.addColorStop(1, "rgba(0,255,204,0)");
+      /* -----------------------------------------
+         CYAN GLOW
+      ----------------------------------------- */
+
+      const cyanGlow =
+        ctx.createRadialGradient(
+          width * 0.15,
+          height * 0.2,
+          0,
+          width * 0.15,
+          height * 0.2,
+          320
+        );
+
+      cyanGlow.addColorStop(
+        0,
+        "rgba(0,255,204,0.18)"
+      );
+
+      cyanGlow.addColorStop(
+        1,
+        "rgba(0,255,204,0)"
+      );
 
       ctx.fillStyle = cyanGlow;
-      ctx.fillRect(0, 0, W, H);
 
-      /* ---------------------------------------------
-         PINK AMBIENT GLOW
-      --------------------------------------------- */
-
-      const pinkGlow = ctx.createRadialGradient(
-        W * 0.82,
-        H * 0.28,
+      ctx.fillRect(
         0,
-        W * 0.82,
-        H * 0.28,
-        300
+        0,
+        width,
+        height
       );
 
-      pinkGlow.addColorStop(0, "rgba(255,30,120,0.15)");
-      pinkGlow.addColorStop(1, "rgba(255,30,120,0)");
+      /* -----------------------------------------
+         PINK GLOW
+      ----------------------------------------- */
+
+      const pinkGlow =
+        ctx.createRadialGradient(
+          width * 0.85,
+          height * 0.25,
+          0,
+          width * 0.85,
+          height * 0.25,
+          330
+        );
+
+      pinkGlow.addColorStop(
+        0,
+        "rgba(255,30,120,0.15)"
+      );
+
+      pinkGlow.addColorStop(
+        1,
+        "rgba(255,30,120,0)"
+      );
 
       ctx.fillStyle = pinkGlow;
-      ctx.fillRect(0, 0, W, H);
 
-      /* ---------------------------------------------
+      ctx.fillRect(
+        0,
+        0,
+        width,
+        height
+      );
+
+      /* -----------------------------------------
          STARS
-      --------------------------------------------- */
+      ----------------------------------------- */
 
-      for (let i = 0; i < 120; i++) {
-        const starX = (i * 97.5 + t * 0.05) % W;
-        const starY = (i * 53.3) % (H * 0.62);
+      for (let i = 0; i < 130; i += 1) {
+        const starX =
+          (i * 97.5 + time * 0.04) %
+          width;
+
+        const starY =
+          (i * 53.3) %
+          (height * 0.62);
 
         const twinkle =
-          Math.sin(t * 0.03 + i) * 0.4 + 0.6;
+          Math.sin(time * 0.03 + i) *
+            0.4 +
+          0.6;
 
         ctx.globalAlpha = twinkle;
 
@@ -184,325 +294,176 @@ export default function StartScreen({
         ctx.fillRect(
           starX,
           starY,
-          1.3,
-          1.3
+          1.2,
+          1.2
         );
       }
 
       ctx.globalAlpha = 1;
 
-      /* ---------------------------------------------
-         HORIZON GLOW
-      --------------------------------------------- */
-
-      const horizon = ctx.createLinearGradient(
-        0,
-        H * 0.48,
-        0,
-        H * 0.72
-      );
-
-      horizon.addColorStop(
-        0,
-        "rgba(0,255,204,0)"
-      );
-
-      horizon.addColorStop(
-        0.5,
-        "rgba(0,255,204,0.08)"
-      );
-
-      horizon.addColorStop(
-        1,
-        "rgba(0,255,204,0)"
-      );
-
-      ctx.fillStyle = horizon;
-
-      ctx.fillRect(
-        0,
-        H * 0.48,
-        W,
-        H * 0.24
-      );
-
-      /* ---------------------------------------------
+      /* -----------------------------------------
          ROAD
-      --------------------------------------------- */
+      ----------------------------------------- */
 
-      const road = ctx.createLinearGradient(
+      const road =
+        ctx.createLinearGradient(
+          0,
+          height * 0.56,
+          0,
+          height
+        );
+
+      road.addColorStop(
         0,
-        H * 0.58,
-        0,
-        H
+        "#151624"
       );
 
-      road.addColorStop(0, "#17182a");
-      road.addColorStop(1, "#061a32");
+      road.addColorStop(
+        1,
+        "#04182d"
+      );
 
       ctx.fillStyle = road;
 
       ctx.fillRect(
         0,
-        H * 0.58,
-        W,
-        H * 0.42
+        height * 0.56,
+        width,
+        height * 0.44
       );
 
-      /* ---------------------------------------------
-         ROAD HORIZON LINE
-      --------------------------------------------- */
+      /* -----------------------------------------
+         ROAD LIGHT LINE
+      ----------------------------------------- */
 
       ctx.save();
 
-      ctx.setLineDash([35, 35]);
+      ctx.setLineDash([
+        35,
+        35,
+      ]);
 
-      ctx.lineDashOffset = -(t * 3);
+      ctx.lineDashOffset =
+        -(time * 3);
 
       ctx.strokeStyle =
         "rgba(0,255,220,0.55)";
 
       ctx.lineWidth = 3;
 
-      ctx.shadowColor = "#00ffcc";
+      ctx.shadowColor =
+        "#00ffcc";
 
       ctx.shadowBlur = 10;
 
       ctx.beginPath();
 
-      ctx.moveTo(0, H * 0.76);
-      ctx.lineTo(W, H * 0.76);
+      ctx.moveTo(
+        0,
+        height * 0.76
+      );
+
+      ctx.lineTo(
+        width,
+        height * 0.76
+      );
 
       ctx.stroke();
 
       ctx.restore();
 
-      /* ---------------------------------------------
-         SECOND ROAD LINE
-      --------------------------------------------- */
+      /* -----------------------------------------
+         MOVING VEHICLE
+      ----------------------------------------- */
 
       ctx.save();
 
-      ctx.setLineDash([15, 45]);
+      const vehicleX =
+        (time * 2.4) %
+          (width + 200) -
+        100;
 
-      ctx.lineDashOffset = t * 2;
+      const vehicleY =
+        height * 0.62;
 
-      ctx.strokeStyle =
-        "rgba(255,90,30,0.25)";
-
-      ctx.lineWidth = 2;
-
-      ctx.beginPath();
-
-      ctx.moveTo(0, H * 0.83);
-      ctx.lineTo(W, H * 0.83);
-
-      ctx.stroke();
-
-      ctx.restore();
-
-      /* ---------------------------------------------
-         MOVING MOTORCYCLE
-      --------------------------------------------- */
-
-      ctx.save();
-
-      const bikeX =
-        (t * 2.4) % (W + 180) - 90;
-
-      const bikeY = H * 0.62;
-
-      ctx.translate(bikeX, bikeY);
-
-      /* wheels */
-
-      ctx.fillStyle = "#080a10";
-
-      ctx.strokeStyle = "#555b66";
-
-      ctx.lineWidth = 2;
-
-      ctx.beginPath();
-
-      ctx.arc(
-        -25,
-        18,
-        14,
-        0,
-        Math.PI * 2
+      ctx.translate(
+        vehicleX,
+        vehicleY
       );
 
-      ctx.fill();
-      ctx.stroke();
+      const selectedVehicle =
+        settings.vehicle;
 
-      ctx.beginPath();
+      /* -----------------------------------------
+         BIKE
+      ----------------------------------------- */
 
-      ctx.arc(
-        25,
-        18,
-        12,
-        0,
-        Math.PI * 2
-      );
-
-      ctx.fill();
-      ctx.stroke();
-
-      /* wheel spokes */
-
-      const wheelRotation = t * 0.15;
-
-      ctx.strokeStyle = "#777";
-
-      ctx.lineWidth = 1.5;
-
-      for (let i = 0; i < 6; i++) {
-        const angle =
-          wheelRotation +
-          (i * Math.PI) / 3;
-
-        ctx.beginPath();
-
-        ctx.moveTo(-25, 18);
-
-        ctx.lineTo(
-          -25 + Math.cos(angle) * 11,
-          18 + Math.sin(angle) * 11
+      if (
+        selectedVehicle ===
+        "bike"
+      ) {
+        drawBike(
+          ctx,
+          time
         );
-
-        ctx.stroke();
-
-        ctx.beginPath();
-
-        ctx.moveTo(25, 18);
-
-        ctx.lineTo(
-          25 + Math.cos(angle) * 9,
-          18 + Math.sin(angle) * 9
-        );
-
-        ctx.stroke();
       }
 
-      /* bike frame */
+      /* -----------------------------------------
+         SPORTS CAR
+      ----------------------------------------- */
 
-      ctx.strokeStyle = "#ff4d00";
-
-      ctx.lineWidth = 4;
-
-      ctx.lineJoin = "round";
-
-      ctx.beginPath();
-
-      ctx.moveTo(-25, 18);
-      ctx.lineTo(-10, 2);
-      ctx.lineTo(10, -4);
-      ctx.lineTo(25, 9);
-      ctx.lineTo(25, 18);
-
-      ctx.stroke();
-
-      /* body */
-
-      ctx.fillStyle = "#ff4d00";
-
-      ctx.fillRect(
-        -15,
-        1,
-        20,
-        14
-      );
-
-      ctx.fillRect(
-        -5,
-        -8,
-        18,
-        9
-      );
-
-      ctx.fillRect(
-        -10,
-        -18,
-        12,
-        14
-      );
-
-      /* helmet */
-
-      ctx.fillStyle = "#111";
-
-      ctx.beginPath();
-
-      ctx.arc(
-        4,
-        -18,
-        8,
-        Math.PI,
-        0
-      );
-
-      ctx.arc(
-        4,
-        -18,
-        8,
-        0,
-        Math.PI
-      );
-
-      ctx.fill();
-
-      /* exhaust */
-
-      for (let i = 0; i < 8; i++) {
-        const exhaustX =
-          -30 -
-          i * 12 +
-          Math.sin(t * 0.2 + i) * 3;
-
-        const exhaustY =
-          14 +
-          Math.cos(t * 0.15 + i) * 2;
-
-        ctx.save();
-
-        ctx.globalAlpha =
-          ((8 - i) / 8) * 0.45;
-
-        ctx.fillStyle = "#8aa0aa";
-
-        ctx.beginPath();
-
-        ctx.arc(
-          exhaustX,
-          exhaustY,
-          4 + i,
-          0,
-          Math.PI * 2
+      if (
+        selectedVehicle ===
+        "sports-car"
+      ) {
+        drawSportsCar(
+          ctx,
+          time
         );
+      }
 
-        ctx.fill();
+      /* -----------------------------------------
+         SUPERCAR
+      ----------------------------------------- */
 
-        ctx.restore();
+      if (
+        selectedVehicle ===
+        "supercar"
+      ) {
+        drawSupercar(
+          ctx,
+          time
+        );
+      }
+
+      /* -----------------------------------------
+         TRUCK
+      ----------------------------------------- */
+
+      if (
+        selectedVehicle ===
+        "truck"
+      ) {
+        drawTruck(
+          ctx,
+          time
+        );
       }
 
       ctx.restore();
 
-      /* ---------------------------------------------
-         ANIMATION LOOP
-      --------------------------------------------- */
-
-      animRef.current =
+      animationRef.current =
         requestAnimationFrame(draw);
     };
 
-    animRef.current =
+    animationRef.current =
       requestAnimationFrame(draw);
 
     return () => {
       running = false;
 
       cancelAnimationFrame(
-        animRef.current
+        animationRef.current
       );
 
       window.removeEventListener(
@@ -510,226 +471,497 @@ export default function StartScreen({
         resizeCanvas
       );
     };
-  }, []);
+  }, [settings.vehicle]);
+
+  /* ---------------------------------------------
+     SETTINGS HELPERS
+  --------------------------------------------- */
+
+  const selectDifficulty = (
+    difficulty: Difficulty
+  ) => {
+    setSettings((current) => ({
+      ...current,
+      difficulty,
+    }));
+  };
+
+  const selectTypingMode = (
+    typingMode: TypingMode
+  ) => {
+    setSettings((current) => ({
+      ...current,
+      typingMode,
+    }));
+  };
+
+  const selectVehicle = (
+    vehicle: VehicleType
+  ) => {
+    setSettings((current) => ({
+      ...current,
+      vehicle,
+    }));
+  };
+
+  const handleStart = () => {
+    onStart(settings);
+  };
 
   return (
     <div
       ref={screenRef}
-      className="start-screen absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+      style={{
+        perspective: "1200px",
+      }}
     >
-      {/* -----------------------------------------
-          CANVAS BACKGROUND
-      ----------------------------------------- */}
+      {/* BACKGROUND */}
 
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full"
       />
 
-      {/* -----------------------------------------
-          MOUSE FOLLOWING LIGHT
-      ----------------------------------------- */}
+      {/* MOUSE LIGHT */}
 
       <div
         ref={spotlightRef}
         className="pointer-events-none absolute z-[2] h-[380px] w-[380px] rounded-full bg-cyan-300/10 blur-3xl opacity-0 transition-opacity duration-300"
       />
 
-      {/* -----------------------------------------
-          GRID
-      ----------------------------------------- */}
+      {/* GRID */}
 
-      <div className="start-grid pointer-events-none absolute inset-0 z-[2] opacity-30" />
+      <div className="pointer-events-none absolute inset-0 z-[2] opacity-20 [background-image:linear-gradient(rgba(0,255,204,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,204,0.08)_1px,transparent_1px)] [background-size:60px_60px]" />
 
-      {/* -----------------------------------------
-          MAIN CONTENT
-      ----------------------------------------- */}
+      {/* MAIN PANEL */}
 
-      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center px-4 py-6 sm:px-6">
-        <div className="glass-panel w-full rounded-[28px] p-5 sm:p-7 md:p-9">
-
-          {/* -------------------------------------
-              TOP BADGE
-          ------------------------------------- */}
+      <div className="relative z-10 flex h-full w-full items-center justify-center overflow-y-auto px-4 py-6 sm:px-6">
+        <div
+          className="w-full max-w-3xl rounded-[28px] border border-white/10 bg-black/30 p-5 shadow-[0_0_80px_rgba(0,255,204,0.08)] backdrop-blur-2xl transition-transform duration-150 sm:p-7 md:p-9"
+          style={{
+            transform:
+              "rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg))",
+          }}
+        >
+          {/* HEADER */}
 
           <div className="text-center">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-200/80 backdrop-blur-xl">
+
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.3em] text-cyan-200/80">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_12px_#00ffcc]" />
 
               Neon Typing Challenge
             </div>
 
-            {/* ---------------------------------
-                TITLE
-            --------------------------------- */}
-
-            <div
-              className="text-5xl font-black tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,102,0,.7)] sm:text-6xl md:text-7xl"
+            <h1
+              className="text-4xl font-black tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,102,0,.7)] sm:text-5xl md:text-6xl"
               style={{
-                fontFamily: "'Orbitron', monospace",
+                fontFamily:
+                  "'Orbitron', monospace",
               }}
             >
               MOTO
-            </div>
+            </h1>
 
-            <div
-              className="text-3xl font-black tracking-[0.14em] text-cyan-300 drop-shadow-[0_0_18px_rgba(0,255,204,.8)] sm:text-4xl md:text-5xl"
+            <h2
+              className="text-2xl font-black tracking-[0.12em] text-cyan-300 drop-shadow-[0_0_18px_rgba(0,255,204,.8)] sm:text-3xl md:text-4xl"
               style={{
-                fontFamily: "'Orbitron', monospace",
+                fontFamily:
+                  "'Orbitron', monospace",
               }}
             >
               TYPE RACER
-            </div>
+            </h2>
 
-            <div className="mt-3 text-xs font-semibold uppercase tracking-[0.28em] text-white/50">
+            <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/40">
               Type fast · Ride faster
-            </div>
+            </p>
+
           </div>
 
-          {/* -------------------------------------
-              START SECTION
-          ------------------------------------- */}
+          {/* GAME SETTINGS */}
 
-          <div className="mt-7 flex flex-col items-center gap-5">
+          <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.035] p-4 sm:p-5">
 
-            <button
-              type="button"
-              onClick={onStart}
-              className="start-race-button group relative w-full max-w-sm overflow-hidden rounded-2xl px-10 py-4 text-lg font-black uppercase tracking-[0.18em] text-black transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-95"
-              style={{
-                fontFamily: "'Orbitron', monospace",
-              }}
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-cyan-300 via-emerald-300 to-yellow-300" />
+            <div className="mb-5 text-center">
 
-              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-
-              <span className="relative flex items-center justify-center gap-3">
-                <span>⚡</span>
-
-                <span>Start Race</span>
-
-                <span className="text-black/50">
-                  →
-                </span>
-              </span>
-            </button>
-
-            {/* ---------------------------------
-                HOW TO PLAY
-            --------------------------------- */}
-
-            <div className="glass-card w-full rounded-2xl p-4 sm:p-5">
-              <div className="mb-4 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-300">
-                How To Play
+              <div
+                className="text-xs font-black uppercase tracking-[0.3em] text-white/80"
+                style={{
+                  fontFamily:
+                    "'Orbitron', monospace",
+                }}
+              >
+                Configure Your Race
               </div>
 
-              <div className="grid gap-3 text-xs text-white/65 sm:grid-cols-2">
+              <div className="mt-1 text-[10px] text-white/35">
+                Choose your challenge before starting
+              </div>
 
-                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
-                  <span className="text-lg">
-                    ⌨️
-                  </span>
+            </div>
 
-                  <span>
-                    Type the displayed word to accelerate
-                  </span>
-                </div>
+            {/* DIFFICULTY */}
 
-                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
-                  <span className="text-lg">
-                    ✅
-                  </span>
+            <div>
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.25em] text-cyan-300/70">
+                Difficulty
+              </div>
 
-                  <span>
-                    Correct letters boost your run
-                  </span>
-                </div>
+              <div className="grid grid-cols-3 gap-2">
 
-                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
-                  <span className="text-lg">
-                    🔥
-                  </span>
+                {(
+                  Object.keys(
+                    DIFFICULTY_SETTINGS
+                  ) as Difficulty[]
+                ).map((difficulty) => {
+                  const item =
+                    DIFFICULTY_SETTINGS[
+                      difficulty
+                    ];
 
-                  <span>
-                    Chain words for combo multipliers
-                  </span>
-                </div>
+                  const selected =
+                    settings.difficulty ===
+                    difficulty;
 
-                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
-                  <span className="text-lg">
-                    📱
-                  </span>
+                  return (
+                    <button
+                      key={difficulty}
+                      type="button"
+                      onClick={() =>
+                        selectDifficulty(
+                          difficulty
+                        )
+                      }
+                      className={
+                        "rounded-xl border p-3 text-left transition-all duration-200 " +
+                        (selected
+                          ? "border-cyan-300/60 bg-cyan-300/10 shadow-[0_0_20px_rgba(0,255,204,0.12)]"
+                          : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]")
+                      }
+                    >
+                      <div
+                        className={
+                          "text-xs font-black uppercase " +
+                          (selected
+                            ? "text-cyan-300"
+                            : "text-white/70")
+                        }
+                      >
+                        {item.label}
+                      </div>
 
-                  <span>
-                    Tap anywhere for mobile keyboard
-                  </span>
-                </div>
+                      <div className="mt-1 text-[9px] leading-relaxed text-white/35">
+                        {item.description}
+                      </div>
+                    </button>
+                  );
+                })}
 
               </div>
             </div>
 
-            {/* ---------------------------------
-                HIGH SCORES
-            --------------------------------- */}
+            {/* TYPING MODE */}
 
-            {highScores.length > 0 && (
-              <div className="glass-card w-full rounded-2xl p-4 sm:p-5">
+            <div className="mt-5">
 
-                <div className="mb-4 flex items-center justify-between">
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.25em] text-cyan-300/70">
+                Typing Mode
+              </div>
 
-                  <div
-                    className="text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300"
-                    style={{
-                      fontFamily:
-                        "'Orbitron', monospace",
-                    }}
-                  >
-                    🏆 High Scores
+              <div className="grid grid-cols-2 gap-2">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    selectTypingMode(
+                      "word"
+                    )
+                  }
+                  className={
+                    "rounded-xl border p-4 text-left transition-all duration-200 " +
+                    (settings.typingMode ===
+                    "word"
+                      ? "border-cyan-300/60 bg-cyan-300/10 shadow-[0_0_20px_rgba(0,255,204,0.12)]"
+                      : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]")
+                  }
+                >
+                  <div className="text-xl">
+                    ⌨️
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={onClearScores}
-                    className="rounded-md px-2 py-1 text-[10px] uppercase tracking-wider text-white/35 transition hover:bg-white/10 hover:text-white/80"
+                  <div
+                    className={
+                      "mt-2 text-xs font-black uppercase " +
+                      (settings.typingMode ===
+                      "word"
+                        ? "text-cyan-300"
+                        : "text-white/70")
+                    }
                   >
-                    Clear
-                  </button>
+                    Word Race
+                  </div>
 
+                  <div className="mt-1 text-[9px] text-white/35">
+                    Type one word at a time
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    selectTypingMode(
+                      "paragraph"
+                    )
+                  }
+                  className={
+                    "rounded-xl border p-4 text-left transition-all duration-200 " +
+                    (settings.typingMode ===
+                    "paragraph"
+                      ? "border-cyan-300/60 bg-cyan-300/10 shadow-[0_0_20px_rgba(0,255,204,0.12)]"
+                      : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]")
+                  }
+                >
+                  <div className="text-xl">
+                    📖
+                  </div>
+
+                  <div
+                    className={
+                      "mt-2 text-xs font-black uppercase " +
+                      (settings.typingMode ===
+                      "paragraph"
+                        ? "text-cyan-300"
+                        : "text-white/70")
+                    }
+                  >
+                    Paragraph Race
+                  </div>
+
+                  <div className="mt-1 text-[9px] text-white/35">
+                    Type continuous paragraphs
+                  </div>
+                </button>
+
+              </div>
+            </div>
+
+            {/* VEHICLE */}
+
+            <div className="mt-5">
+
+              <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.25em] text-cyan-300/70">
+                Choose Vehicle
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+                {(
+                  Object.keys(
+                    VEHICLE_SETTINGS
+                  ) as VehicleType[]
+                ).map((vehicle) => {
+                  const item =
+                    VEHICLE_SETTINGS[
+                      vehicle
+                    ];
+
+                  const selected =
+                    settings.vehicle ===
+                    vehicle;
+
+                  return (
+                    <button
+                      key={vehicle}
+                      type="button"
+                      onClick={() =>
+                        selectVehicle(
+                          vehicle
+                        )
+                      }
+                      className={
+                        "rounded-xl border p-3 text-center transition-all duration-200 " +
+                        (selected
+                          ? "border-cyan-300/60 bg-cyan-300/10 shadow-[0_0_20px_rgba(0,255,204,0.12)]"
+                          : "border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]")
+                      }
+                    >
+                      <div className="text-2xl">
+                        {item.icon}
+                      </div>
+
+                      <div
+                        className={
+                          "mt-1 text-[9px] font-bold uppercase " +
+                          (selected
+                            ? "text-cyan-300"
+                            : "text-white/55")
+                        }
+                      >
+                        {item.label}
+                      </div>
+                    </button>
+                  );
+                })}
+
+              </div>
+            </div>
+
+          </div>
+
+          {/* SELECTED SETTINGS SUMMARY */}
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/50">
+              {DIFFICULTY_SETTINGS[
+                settings.difficulty
+              ].label}
+            </span>
+
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/50">
+              {settings.typingMode ===
+              "word"
+                ? "⌨️ Word Race"
+                : "📖 Paragraph Race"}
+            </span>
+
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/50">
+              {
+                VEHICLE_SETTINGS[
+                  settings.vehicle
+                ].icon
+              }{" "}
+              {
+                VEHICLE_SETTINGS[
+                  settings.vehicle
+                ].label
+              }
+            </span>
+
+          </div>
+
+          {/* START BUTTON */}
+
+          <button
+            type="button"
+            onClick={handleStart}
+            className="start-race-button group relative mt-5 w-full overflow-hidden rounded-2xl px-8 py-4 text-base font-black uppercase tracking-[0.2em] text-black transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01] active:translate-y-0 active:scale-[0.98]"
+            style={{
+              fontFamily:
+                "'Orbitron', monospace",
+            }}
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-cyan-300 via-emerald-300 to-yellow-300" />
+
+            <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+            <span className="relative flex items-center justify-center gap-3">
+              <span>⚡</span>
+
+              <span>Start Race</span>
+
+              <span>→</span>
+            </span>
+          </button>
+
+          {/* HOW TO PLAY */}
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+
+            <div className="mb-3 text-center text-[9px] font-bold uppercase tracking-[0.3em] text-cyan-300">
+              How To Play
+            </div>
+
+            <div className="grid gap-2 text-[10px] text-white/55 sm:grid-cols-2">
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                ⌨️ Type accurately to increase your speed.
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                🔥 Build combos for higher scores.
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                🏁 Finish the race before losing all lives.
+              </div>
+
+              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                🏆 Beat your previous high score.
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* HIGH SCORES */}
+
+          {highScores.length > 0 && (
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+
+              <div className="mb-3 flex items-center justify-between">
+
+                <div
+                  className="text-[9px] font-bold uppercase tracking-[0.25em] text-yellow-300"
+                  style={{
+                    fontFamily:
+                      "'Orbitron', monospace",
+                  }}
+                >
+                  🏆 High Scores
                 </div>
 
-                <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={onClearScores}
+                  className="rounded-md px-2 py-1 text-[9px] uppercase tracking-wider text-white/35 transition hover:bg-white/10 hover:text-white/80"
+                >
+                  Clear
+                </button>
 
-                  {highScores
-                    .slice(0, 5)
-                    .map((score, index) => (
+              </div>
+
+              <div className="space-y-2">
+
+                {highScores
+                  .slice(0, 5)
+                  .map(
+                    (score, index) => (
                       <div
-                        key={`${score.name}-${score.date}-${index}`}
-                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2.5 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.06]"
+                        key={
+                          score.name +
+                          "-" +
+                          score.score +
+                          "-" +
+                          index
+                        }
+                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2"
                       >
 
                         <div className="flex min-w-0 items-center gap-2">
 
-                          <span className="w-6 shrink-0 text-center text-sm font-bold text-yellow-300">
+                          <span className="w-6 text-center text-xs">
                             {index === 0
                               ? "🥇"
                               : index === 1
                               ? "🥈"
                               : index === 2
                               ? "🥉"
-                              : `${index + 1}.`}
+                              : index + 1 + "."}
                           </span>
 
-                          <span className="truncate text-sm text-white/80">
+                          <span className="truncate text-xs text-white/70">
                             {score.name}
                           </span>
 
                         </div>
 
-                        <div className="ml-3 flex shrink-0 items-center gap-3 text-right">
+                        <div className="ml-3 flex items-center gap-3">
 
                           <span
-                            className="font-bold text-cyan-300"
+                            className="text-xs font-bold text-cyan-300"
                             style={{
                               fontFamily:
                                 "'Orbitron', monospace",
@@ -738,35 +970,33 @@ export default function StartScreen({
                             {score.score.toLocaleString()}
                           </span>
 
-                          <span className="text-xs text-white/40">
+                          <span className="text-[9px] text-white/35">
                             {score.wpm} WPM
                           </span>
 
                         </div>
 
                       </div>
-                    ))}
+                    )
+                  )}
 
-                </div>
               </div>
-            )}
 
-          </div>
+            </div>
+          )}
 
-          {/* -------------------------------------
-              CREATOR CREDIT
-          ------------------------------------- */}
+          {/* CREATOR */}
 
-          <div className="mt-7 text-center">
+          <div className="mt-6 text-center">
 
-            <div className="mx-auto mb-3 h-px w-28 bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
+            <div className="mx-auto mb-2 h-px w-24 bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
 
-            <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/35">
+            <div className="text-[8px] font-bold uppercase tracking-[0.35em] text-white/30">
               Created By
             </div>
 
             <div
-              className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-white/80"
+              className="mt-1 text-xs font-black uppercase tracking-[0.2em] text-white/70"
               style={{
                 fontFamily:
                   "'Orbitron', monospace",
@@ -781,4 +1011,485 @@ export default function StartScreen({
       </div>
     </div>
   );
+}
+
+/* =================================================
+   VEHICLE DRAWING FUNCTIONS
+   ================================================= */
+
+function drawBike(
+  ctx: CanvasRenderingContext2D,
+  time: number
+) {
+  const wheelRotation =
+    time * 0.15;
+
+  ctx.fillStyle = "#080a10";
+  ctx.strokeStyle = "#555b66";
+  ctx.lineWidth = 2;
+
+  /* Rear wheel */
+
+  ctx.beginPath();
+
+  ctx.arc(
+    -25,
+    18,
+    14,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+  ctx.stroke();
+
+  /* Front wheel */
+
+  ctx.beginPath();
+
+  ctx.arc(
+    25,
+    18,
+    12,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+  ctx.stroke();
+
+  /* Spokes */
+
+  ctx.strokeStyle = "#777";
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i < 6; i += 1) {
+    const angle =
+      wheelRotation +
+      (i * Math.PI) / 3;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -25,
+      18
+    );
+
+    ctx.lineTo(
+      -25 +
+        Math.cos(angle) *
+          11,
+      18 +
+        Math.sin(angle) *
+          11
+    );
+
+    ctx.stroke();
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      25,
+      18
+    );
+
+    ctx.lineTo(
+      25 +
+        Math.cos(angle) *
+          9,
+      18 +
+        Math.sin(angle) *
+          9
+    );
+
+    ctx.stroke();
+  }
+
+  /* Frame */
+
+  ctx.strokeStyle =
+    "#ff4d00";
+
+  ctx.lineWidth = 4;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    -25,
+    18
+  );
+
+  ctx.lineTo(
+    -10,
+    2
+  );
+
+  ctx.lineTo(
+    10,
+    -4
+  );
+
+  ctx.lineTo(
+    25,
+    9
+  );
+
+  ctx.lineTo(
+    25,
+    18
+  );
+
+  ctx.stroke();
+
+  /* Body */
+
+  ctx.fillStyle =
+    "#ff4d00";
+
+  ctx.fillRect(
+    -15,
+    1,
+    20,
+    14
+  );
+
+  ctx.fillRect(
+    -5,
+    -8,
+    18,
+    9
+  );
+
+  /* Rider */
+
+  ctx.fillRect(
+    -10,
+    -18,
+    12,
+    14
+  );
+
+  ctx.fillStyle =
+    "#111";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    4,
+    -18,
+    8,
+    Math.PI,
+    0
+  );
+
+  ctx.fill();
+}
+
+/* =================================================
+   SPORTS CAR
+   ================================================= */
+
+function drawSportsCar(
+  ctx: CanvasRenderingContext2D,
+  time: number
+) {
+  const wheelRotation =
+    time * 0.15;
+
+  drawCarBody(
+    ctx,
+    wheelRotation,
+    "#00e5ff",
+    1
+  );
+}
+
+/* =================================================
+   SUPERCAR
+   ================================================= */
+
+function drawSupercar(
+  ctx: CanvasRenderingContext2D,
+  time: number
+) {
+  const wheelRotation =
+    time * 0.2;
+
+  drawCarBody(
+    ctx,
+    wheelRotation,
+    "#ff2f92",
+    1.15
+  );
+}
+
+/* =================================================
+   TRUCK
+   ================================================= */
+
+function drawTruck(
+  ctx: CanvasRenderingContext2D,
+  time: number
+) {
+  const wheelRotation =
+    time * 0.12;
+
+  ctx.fillStyle =
+    "#263746";
+
+  ctx.fillRect(
+    -48,
+    -10,
+    60,
+    28
+  );
+
+  ctx.fillStyle =
+    "#ff7a00";
+
+  ctx.fillRect(
+    12,
+    -2,
+    28,
+    20
+  );
+
+  ctx.fillStyle =
+    "#8de8ff";
+
+  ctx.fillRect(
+    18,
+    1,
+    17,
+    9
+  );
+
+  drawWheel(
+    ctx,
+    -30,
+    19,
+    12,
+    wheelRotation
+  );
+
+  drawWheel(
+    ctx,
+    28,
+    19,
+    12,
+    wheelRotation
+  );
+
+  ctx.fillStyle =
+    "#ffcf33";
+
+  ctx.fillRect(
+    -52,
+    1,
+    5,
+    7
+  );
+}
+
+/* =================================================
+   GENERIC CAR
+   ================================================= */
+
+function drawCarBody(
+  ctx: CanvasRenderingContext2D,
+  wheelRotation: number,
+  bodyColor: string,
+  scale: number
+) {
+  ctx.save();
+
+  ctx.scale(
+    scale,
+    scale
+  );
+
+  /* Body */
+
+  ctx.fillStyle =
+    bodyColor;
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    -52,
+    12
+  );
+
+  ctx.lineTo(
+    -40,
+    -5
+  );
+
+  ctx.lineTo(
+    -18,
+    -12
+  );
+
+  ctx.lineTo(
+    20,
+    -12
+  );
+
+  ctx.lineTo(
+    38,
+    -2
+  );
+
+  ctx.lineTo(
+    52,
+    12
+  );
+
+  ctx.lineTo(
+    52,
+    21
+  );
+
+  ctx.lineTo(
+    -52,
+    21
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  /* Windows */
+
+  ctx.fillStyle =
+    "#07131f";
+
+  ctx.beginPath();
+
+  ctx.moveTo(
+    -20,
+    -8
+  );
+
+  ctx.lineTo(
+    0,
+    -8
+  );
+
+  ctx.lineTo(
+    15,
+    -2
+  );
+
+  ctx.lineTo(
+    -13,
+    -2
+  );
+
+  ctx.closePath();
+
+  ctx.fill();
+
+  /* Wheels */
+
+  drawWheel(
+    ctx,
+    -30,
+    21,
+    11,
+    wheelRotation
+  );
+
+  drawWheel(
+    ctx,
+    30,
+    21,
+    11,
+    wheelRotation
+  );
+
+  /* Lights */
+
+  ctx.fillStyle =
+    "#fff4a3";
+
+  ctx.fillRect(
+    45,
+    5,
+    6,
+    5
+  );
+
+  ctx.restore();
+}
+
+/* =================================================
+   WHEEL
+   ================================================= */
+
+function drawWheel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  rotation: number
+) {
+  ctx.save();
+
+  ctx.fillStyle =
+    "#07090d";
+
+  ctx.strokeStyle =
+    "#555d68";
+
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+
+  ctx.arc(
+    x,
+    y,
+    radius,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.translate(
+    x,
+    y
+  );
+
+  ctx.rotate(rotation);
+
+  ctx.strokeStyle =
+    "#89919b";
+
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i < 5; i += 1) {
+    const angle =
+      (i * Math.PI * 2) /
+      5;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      0,
+      0
+    );
+
+    ctx.lineTo(
+      Math.cos(angle) *
+        (radius - 2),
+      Math.sin(angle) *
+        (radius - 2)
+    );
+
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
