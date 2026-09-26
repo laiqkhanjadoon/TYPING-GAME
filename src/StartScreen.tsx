@@ -1,5 +1,4 @@
-```tsx
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { HighScoreEntry } from "./useHighScores";
 
 interface Props {
@@ -13,227 +12,469 @@ export default function StartScreen({
   highScores,
   onClearScores,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
-  const tRef = useRef(0);
+  const timeRef = useRef(0);
 
-  const [mouse, setMouse] = useState({
-    x: 50,
-    y: 50,
-  });
+  const screenRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
 
+  /* ---------------------------------------------
+     MOUSE FOLLOWING GLASS EFFECT
+  --------------------------------------------- */
+  useEffect(() => {
+    const screen = screenRef.current;
+    const spotlight = spotlightRef.current;
+
+    if (!screen || !spotlight) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = screen.getBoundingClientRect();
+
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      const rotateX = ((y / rect.height) - 0.5) * -2.5;
+      const rotateY = ((x / rect.width) - 0.5) * 2.5;
+
+      spotlight.style.transform =
+        "translate(" +
+        (x - 190) +
+        "px, " +
+        (y - 190) +
+        "px)";
+
+      spotlight.style.opacity = "1";
+
+      screen.style.setProperty("--mx", x + "px");
+      screen.style.setProperty("--my", y + "px");
+      screen.style.setProperty("--rx", rotateX + "deg");
+      screen.style.setProperty("--ry", rotateY + "deg");
+    };
+
+    const handlePointerLeave = () => {
+      spotlight.style.opacity = "0";
+
+      screen.style.setProperty("--rx", "0deg");
+      screen.style.setProperty("--ry", "0deg");
+    };
+
+    screen.addEventListener("pointermove", handlePointerMove);
+    screen.addEventListener("pointerleave", handlePointerLeave);
+
+    return () => {
+      screen.removeEventListener("pointermove", handlePointerMove);
+      screen.removeEventListener("pointerleave", handlePointerLeave);
+    };
+  }, []);
+
+  /* ---------------------------------------------
+     ANIMATED CANVAS BACKGROUND
+  --------------------------------------------- */
   useEffect(() => {
     const canvas = canvasRef.current;
+
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+    let running = true;
 
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
+    const resizeCanvas = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-     canvas.style.width = `${window.innerWidth}px`;
-canvas.style.height = `${window.innerHeight}px`;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+
+      /*
+       * Deliberately using string concatenation instead of
+       * template literals here to avoid accidental quote errors.
+       */
+      canvas.style.width = width + "px";
+      canvas.style.height = height + "px";
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    resize();
-    window.addEventListener("resize", resize);
+    resizeCanvas();
+
+    window.addEventListener("resize", resizeCanvas);
 
     const draw = () => {
-      tRef.current += 1;
-      const t = tRef.current;
+      if (!running) return;
+
+      timeRef.current += 1;
+
+      const t = timeRef.current;
 
       const W = window.innerWidth;
       const H = window.innerHeight;
 
-      /* Background */
-      const grd = ctx.createLinearGradient(0, 0, 0, H);
+      /* ---------------------------------------------
+         BACKGROUND
+      --------------------------------------------- */
 
-      grd.addColorStop(0, "#05000d");
-      grd.addColorStop(0.45, "#12001f");
-      grd.addColorStop(0.75, "#071b30");
-      grd.addColorStop(1, "#02060c");
+      const background = ctx.createLinearGradient(0, 0, 0, H);
 
-      ctx.fillStyle = grd;
+      background.addColorStop(0, "#05000f");
+      background.addColorStop(0.45, "#15002a");
+      background.addColorStop(1, "#061b35");
+
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, W, H);
 
-      /* Ambient purple glow */
-      const glow = ctx.createRadialGradient(
-        W * 0.5,
-        H * 0.35,
+      /* ---------------------------------------------
+         CYAN AMBIENT GLOW
+      --------------------------------------------- */
+
+      const cyanGlow = ctx.createRadialGradient(
+        W * 0.18,
+        H * 0.18,
         0,
-        W * 0.5,
-        H * 0.35,
-        Math.max(W, H) * 0.7
+        W * 0.18,
+        H * 0.18,
+        280
       );
 
-      glow.addColorStop(0, "rgba(140, 0, 255, 0.18)");
-      glow.addColorStop(0.45, "rgba(0, 255, 220, 0.06)");
-      glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+      cyanGlow.addColorStop(0, "rgba(0,255,204,0.18)");
+      cyanGlow.addColorStop(1, "rgba(0,255,204,0)");
 
-      ctx.fillStyle = glow;
+      ctx.fillStyle = cyanGlow;
       ctx.fillRect(0, 0, W, H);
 
-      /* Stars */
-      for (let i = 0; i < 100; i++) {
-        const sx = (i * 97.5 + t * 0.05) % W;
-        const sy = (i * 53.3) % (H * 0.65);
+      /* ---------------------------------------------
+         PINK AMBIENT GLOW
+      --------------------------------------------- */
+
+      const pinkGlow = ctx.createRadialGradient(
+        W * 0.82,
+        H * 0.28,
+        0,
+        W * 0.82,
+        H * 0.28,
+        300
+      );
+
+      pinkGlow.addColorStop(0, "rgba(255,30,120,0.15)");
+      pinkGlow.addColorStop(1, "rgba(255,30,120,0)");
+
+      ctx.fillStyle = pinkGlow;
+      ctx.fillRect(0, 0, W, H);
+
+      /* ---------------------------------------------
+         STARS
+      --------------------------------------------- */
+
+      for (let i = 0; i < 120; i++) {
+        const starX = (i * 97.5 + t * 0.05) % W;
+        const starY = (i * 53.3) % (H * 0.62);
 
         const twinkle =
-          Math.sin(t * 0.03 + i) * 0.35 + 0.65;
+          Math.sin(t * 0.03 + i) * 0.4 + 0.6;
 
         ctx.globalAlpha = twinkle;
 
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(sx, sy, 1.5, 1.5);
+
+        ctx.fillRect(
+          starX,
+          starY,
+          1.3,
+          1.3
+        );
       }
 
       ctx.globalAlpha = 1;
 
-      /* Road */
-      const roadGrd = ctx.createLinearGradient(
+      /* ---------------------------------------------
+         HORIZON GLOW
+      --------------------------------------------- */
+
+      const horizon = ctx.createLinearGradient(
+        0,
+        H * 0.48,
+        0,
+        H * 0.72
+      );
+
+      horizon.addColorStop(
+        0,
+        "rgba(0,255,204,0)"
+      );
+
+      horizon.addColorStop(
+        0.5,
+        "rgba(0,255,204,0.08)"
+      );
+
+      horizon.addColorStop(
+        1,
+        "rgba(0,255,204,0)"
+      );
+
+      ctx.fillStyle = horizon;
+
+      ctx.fillRect(
+        0,
+        H * 0.48,
+        W,
+        H * 0.24
+      );
+
+      /* ---------------------------------------------
+         ROAD
+      --------------------------------------------- */
+
+      const road = ctx.createLinearGradient(
         0,
         H * 0.58,
         0,
         H
       );
 
-      roadGrd.addColorStop(0, "#101525");
-      roadGrd.addColorStop(1, "#02060c");
+      road.addColorStop(0, "#17182a");
+      road.addColorStop(1, "#061a32");
 
-      ctx.fillStyle = roadGrd;
-      ctx.fillRect(0, H * 0.58, W, H * 0.42);
+      ctx.fillStyle = road;
 
-      /* Neon road line */
+      ctx.fillRect(
+        0,
+        H * 0.58,
+        W,
+        H * 0.42
+      );
+
+      /* ---------------------------------------------
+         ROAD HORIZON LINE
+      --------------------------------------------- */
+
       ctx.save();
 
       ctx.setLineDash([35, 35]);
+
       ctx.lineDashOffset = -(t * 3);
 
-      ctx.strokeStyle = "rgba(0,255,220,0.55)";
+      ctx.strokeStyle =
+        "rgba(0,255,220,0.55)";
+
       ctx.lineWidth = 3;
 
       ctx.shadowColor = "#00ffcc";
+
       ctx.shadowBlur = 10;
 
       ctx.beginPath();
+
       ctx.moveTo(0, H * 0.76);
       ctx.lineTo(W, H * 0.76);
+
       ctx.stroke();
 
       ctx.restore();
 
-      /* Motorcycle */
+      /* ---------------------------------------------
+         SECOND ROAD LINE
+      --------------------------------------------- */
+
       ctx.save();
 
-      const bx =
-        (t * 2.2) % (W + 180) - 90;
+      ctx.setLineDash([15, 45]);
 
-      const by = H * 0.63;
+      ctx.lineDashOffset = t * 2;
 
-      ctx.translate(bx, by);
-
-      const spin = t * 0.15;
-
-      /* Wheels */
-      ctx.fillStyle = "#090909";
-      ctx.strokeStyle = "#555";
+      ctx.strokeStyle =
+        "rgba(255,90,30,0.25)";
 
       ctx.lineWidth = 2;
 
       ctx.beginPath();
-      ctx.arc(-25, 16, 14, 0, Math.PI * 2);
+
+      ctx.moveTo(0, H * 0.83);
+      ctx.lineTo(W, H * 0.83);
+
+      ctx.stroke();
+
+      ctx.restore();
+
+      /* ---------------------------------------------
+         MOVING MOTORCYCLE
+      --------------------------------------------- */
+
+      ctx.save();
+
+      const bikeX =
+        (t * 2.4) % (W + 180) - 90;
+
+      const bikeY = H * 0.62;
+
+      ctx.translate(bikeX, bikeY);
+
+      /* wheels */
+
+      ctx.fillStyle = "#080a10";
+
+      ctx.strokeStyle = "#555b66";
+
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+
+      ctx.arc(
+        -25,
+        18,
+        14,
+        0,
+        Math.PI * 2
+      );
+
       ctx.fill();
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(25, 16, 12, 0, Math.PI * 2);
+
+      ctx.arc(
+        25,
+        18,
+        12,
+        0,
+        Math.PI * 2
+      );
+
       ctx.fill();
       ctx.stroke();
 
-      /* Wheel spokes */
+      /* wheel spokes */
+
+      const wheelRotation = t * 0.15;
+
       ctx.strokeStyle = "#777";
+
       ctx.lineWidth = 1.5;
 
       for (let i = 0; i < 6; i++) {
-        const a =
-          spin + (i * Math.PI) / 3;
+        const angle =
+          wheelRotation +
+          (i * Math.PI) / 3;
 
         ctx.beginPath();
-        ctx.moveTo(-25, 16);
+
+        ctx.moveTo(-25, 18);
+
         ctx.lineTo(
-          -25 + Math.cos(a) * 11,
-          16 + Math.sin(a) * 11
+          -25 + Math.cos(angle) * 11,
+          18 + Math.sin(angle) * 11
         );
+
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(25, 16);
+
+        ctx.moveTo(25, 18);
+
         ctx.lineTo(
-          25 + Math.cos(a) * 9,
-          16 + Math.sin(a) * 9
+          25 + Math.cos(angle) * 9,
+          18 + Math.sin(angle) * 9
         );
+
         ctx.stroke();
       }
 
-      /* Bike frame */
-      ctx.strokeStyle = "#ff3300";
+      /* bike frame */
+
+      ctx.strokeStyle = "#ff4d00";
+
       ctx.lineWidth = 4;
+
       ctx.lineJoin = "round";
 
       ctx.beginPath();
-      ctx.moveTo(-25, 16);
-      ctx.lineTo(-10, 0);
+
+      ctx.moveTo(-25, 18);
+      ctx.lineTo(-10, 2);
       ctx.lineTo(10, -4);
-      ctx.lineTo(25, 8);
-      ctx.lineTo(25, 16);
+      ctx.lineTo(25, 9);
+      ctx.lineTo(25, 18);
+
       ctx.stroke();
 
-      /* Bike body */
-      ctx.fillStyle = "#dd3300";
+      /* body */
 
-      ctx.fillRect(-15, 0, 20, 14);
-      ctx.fillRect(-5, -8, 18, 8);
+      ctx.fillStyle = "#ff4d00";
 
-      /* Rider */
-      ctx.fillStyle = "#cc3300";
-      ctx.fillRect(-10, -18, 12, 14);
+      ctx.fillRect(
+        -15,
+        1,
+        20,
+        14
+      );
+
+      ctx.fillRect(
+        -5,
+        -8,
+        18,
+        9
+      );
+
+      ctx.fillRect(
+        -10,
+        -18,
+        12,
+        14
+      );
+
+      /* helmet */
 
       ctx.fillStyle = "#111";
 
       ctx.beginPath();
-      ctx.arc(4, -18, 8, Math.PI, 0);
-      ctx.arc(4, -18, 8, 0, Math.PI);
+
+      ctx.arc(
+        4,
+        -18,
+        8,
+        Math.PI,
+        0
+      );
+
+      ctx.arc(
+        4,
+        -18,
+        8,
+        0,
+        Math.PI
+      );
+
       ctx.fill();
 
-      /* Exhaust */
+      /* exhaust */
+
       for (let i = 0; i < 8; i++) {
-        const ex =
+        const exhaustX =
           -30 -
           i * 12 +
           Math.sin(t * 0.2 + i) * 3;
 
-        const ey =
+        const exhaustY =
           14 +
           Math.cos(t * 0.15 + i) * 2;
 
-        const ea =
-          ((8 - i) / 8) * 0.5;
-
         ctx.save();
 
-        ctx.globalAlpha = ea;
-        ctx.fillStyle = "#888";
+        ctx.globalAlpha =
+          ((8 - i) / 8) * 0.45;
+
+        ctx.fillStyle = "#8aa0aa";
 
         ctx.beginPath();
+
         ctx.arc(
-          ex,
-          ey,
+          exhaustX,
+          exhaustY,
           4 + i,
           0,
           Math.PI * 2
@@ -246,6 +487,10 @@ canvas.style.height = `${window.innerHeight}px`;
 
       ctx.restore();
 
+      /* ---------------------------------------------
+         ANIMATION LOOP
+      --------------------------------------------- */
+
       animRef.current =
         requestAnimationFrame(draw);
     };
@@ -254,260 +499,286 @@ canvas.style.height = `${window.innerHeight}px`;
       requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(animRef.current);
-      window.removeEventListener("resize", resize);
+      running = false;
+
+      cancelAnimationFrame(
+        animRef.current
+      );
+
+      window.removeEventListener(
+        "resize",
+        resizeCanvas
+      );
     };
   }, []);
 
-  /* Mouse interaction */
-  const handleMouseMove = (
-    e: React.MouseEvent<HTMLDivElement>
-  ) => {
-    const rect =
-      e.currentTarget.getBoundingClientRect();
-
-    const x =
-      ((e.clientX - rect.left) /
-        rect.width) *
-      100;
-
-    const y =
-      ((e.clientY - rect.top) /
-        rect.height) *
-      100;
-
-    setMouse({ x, y });
-  };
-
-  const rotateX =
-    (mouse.y - 50) * -0.06;
-
-  const rotateY =
-    (mouse.x - 50) * 0.06;
-
   return (
     <div
-      className="absolute inset-0 overflow-hidden select-none"
-      onMouseMove={handleMouseMove}
+      ref={screenRef}
+      className="start-screen absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
     >
-      {/* Animated background */}
+      {/* -----------------------------------------
+          CANVAS BACKGROUND
+      ----------------------------------------- */}
+
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
       />
 
-      {/* Mouse-following light */}
+      {/* -----------------------------------------
+          MOUSE FOLLOWING LIGHT
+      ----------------------------------------- */}
+
       <div
-        className="pointer-events-none absolute inset-0 transition-all duration-150"
-        style={{
-          background: `
-            radial-gradient(
-              circle 280px at ${mouse.x}% ${mouse.y}%,
-              rgba(0,255,220,0.12),
-              rgba(120,0,255,0.05) 35%,
-              transparent 70%
-            )
-          `,
-        }}
+        ref={spotlightRef}
+        className="pointer-events-none absolute z-[2] h-[380px] w-[380px] rounded-full bg-cyan-300/10 blur-3xl opacity-0 transition-opacity duration-300"
       />
 
-      {/* Grid overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `
-            linear-gradient(
-              rgba(0,255,220,0.12) 1px,
-              transparent 1px
-            ),
-            linear-gradient(
-              90deg,
-              rgba(0,255,220,0.12) 1px,
-              transparent 1px
-            )
-          `,
-          backgroundSize: "60px 60px",
-          maskImage:
-            "linear-gradient(to bottom, transparent, black 40%, transparent)",
-        }}
-      />
+      {/* -----------------------------------------
+          GRID
+      ----------------------------------------- */}
 
-      {/* Main UI */}
-      <div className="relative z-10 flex min-h-full items-center justify-center px-4 py-8">
-        <div
-          className="w-full max-w-xl transition-transform duration-150"
-          style={{
-            transform: `
-              perspective(1200px)
-              rotateX(${rotateX}deg)
-              rotateY(${rotateY}deg)
-            `,
-          }}
-        >
-          {/* Glass container */}
-          <div
-            className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.07] p-6 shadow-2xl backdrop-blur-2xl md:p-8"
-            style={{
-              boxShadow: `
-                0 0 80px rgba(0,255,220,0.08),
-                inset 0 1px 0 rgba(255,255,255,0.15),
-                inset 0 0 40px rgba(255,255,255,0.02)
-              `,
-            }}
-          >
-            {/* Glass reflection */}
+      <div className="start-grid pointer-events-none absolute inset-0 z-[2] opacity-30" />
+
+      {/* -----------------------------------------
+          MAIN CONTENT
+      ----------------------------------------- */}
+
+      <div className="relative z-10 flex w-full max-w-2xl flex-col items-center px-4 py-6 sm:px-6">
+        <div className="glass-panel w-full rounded-[28px] p-5 sm:p-7 md:p-9">
+
+          {/* -------------------------------------
+              TOP BADGE
+          ------------------------------------- */}
+
+          <div className="text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-200/80 backdrop-blur-xl">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-300 shadow-[0_0_12px_#00ffcc]" />
+
+              Neon Typing Challenge
+            </div>
+
+            {/* ---------------------------------
+                TITLE
+            --------------------------------- */}
+
             <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-40"
+              className="text-5xl font-black tracking-tight text-white drop-shadow-[0_0_25px_rgba(255,102,0,.7)] sm:text-6xl md:text-7xl"
               style={{
-                background:
-                  "linear-gradient(to bottom, rgba(255,255,255,0.12), transparent)",
+                fontFamily: "'Orbitron', monospace",
               }}
-            />
+            >
+              MOTO
+            </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-6">
-              {/* Title */}
-              <div className="text-center">
-                <div
-                  className="text-5xl font-black leading-none tracking-tight text-white md:text-7xl"
-                  style={{
-                    fontFamily:
-                      "'Orbitron', monospace",
-                    textShadow:
-                      "0 0 25px #ff6600, 0 0 55px #ff3300",
-                  }}
-                >
-                  MOTO
-                </div>
+            <div
+              className="text-3xl font-black tracking-[0.14em] text-cyan-300 drop-shadow-[0_0_18px_rgba(0,255,204,.8)] sm:text-4xl md:text-5xl"
+              style={{
+                fontFamily: "'Orbitron', monospace",
+              }}
+            >
+              TYPE RACER
+            </div>
 
-                <div
-                  className="mt-1 text-2xl font-black tracking-[0.25em] text-cyan-300 md:text-4xl"
-                  style={{
-                    fontFamily:
-                      "'Orbitron', monospace",
-                    textShadow:
-                      "0 0 20px #00ffcc",
-                  }}
-                >
-                  TYPE RACER
-                </div>
-
-                <div className="mx-auto mt-4 h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
-
-                <p className="mt-3 text-xs font-bold uppercase tracking-[0.3em] text-cyan-300/70">
-                  Type • Race • Dominate
-                </p>
-              </div>
-
-              {/* Start button */}
-              <button
-                onClick={onStart}
-                className="group relative overflow-hidden rounded-2xl border border-cyan-200/40 px-14 py-4 text-lg font-black tracking-[0.2em] text-black uppercase transition-all duration-300 hover:scale-105 active:scale-95"
-                style={{
-                  fontFamily:
-                    "'Orbitron', monospace",
-                  background:
-                    "linear-gradient(135deg, #00ffcc, #00ff88, #ffdd00)",
-                  boxShadow:
-                    "0 0 30px rgba(0,255,200,0.5)",
-                }}
-              >
-                <span className="relative z-10">
-                  START RACE
-                </span>
-
-                {/* Button shine */}
-                <span
-                  className="absolute inset-y-0 -left-20 w-12 rotate-12 bg-white/60 blur-md transition-all duration-700 group-hover:left-[120%]"
-                />
-              </button>
-
-              {/* How to play */}
-              <div
-                className="w-full rounded-2xl border border-cyan-400/15 bg-black/25 p-5 text-center backdrop-blur-xl transition-all duration-300 hover:border-cyan-400/35 hover:bg-black/35"
-              >
-                <p className="mb-3 text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                  How To Play
-                </p>
-
-                <div className="space-y-2 text-xs font-mono text-white/65">
-                  <p>
-                    ⌨ Type matching letters to accelerate
-                    your bike
-                  </p>
-
-                  <p>
-                    ⚡ Chain words for combo multipliers
-                  </p>
-
-                  <p>
-                    🚀 Build combos to activate TURBO BOOST
-                  </p>
-                </div>
-              </div>
-
-              {/* High scores */}
-              {highScores &&
-                highScores.length > 0 && (
-                  <div
-                    className="w-full rounded-2xl border border-white/10 bg-black/30 p-4 backdrop-blur-xl"
-                  >
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-yellow-300">
-                        High Scores
-                      </span>
-
-                      <button
-                        onClick={onClearScores}
-                        className="text-xs font-mono text-white/30 transition hover:text-red-300"
-                      >
-                        clear
-                      </button>
-                    </div>
-
-                    <div className="max-h-32 space-y-1 overflow-y-auto">
-                      {highScores
-                        .slice(0, 5)
-                        .map((s, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between rounded-lg px-2 py-1.5 font-mono text-xs text-white/75 transition hover:bg-white/5 hover:text-white"
-                          >
-                            <span>
-                              #{i + 1} {s.name}
-                            </span>
-
-                            <span className="font-bold text-cyan-300">
-                              {s.score.toLocaleString()} pts
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                )}
-
-              {/* Creator */}
-              <div className="pt-1 text-center">
-                <p className="text-[10px] uppercase tracking-[0.35em] text-white/30">
-                  Created by
-                </p>
-
-                <p
-                  className="mt-1 text-sm font-black uppercase tracking-[0.18em] text-white/80"
-                  style={{
-                    textShadow:
-                      "0 0 15px rgba(0,255,220,0.45)",
-                  }}
-                >
-                  LAEEQ KHAN JADOON
-                </p>
-
-                <div className="mx-auto mt-2 h-px w-20 bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
-              </div>
+            <div className="mt-3 text-xs font-semibold uppercase tracking-[0.28em] text-white/50">
+              Type fast · Ride faster
             </div>
           </div>
+
+          {/* -------------------------------------
+              START SECTION
+          ------------------------------------- */}
+
+          <div className="mt-7 flex flex-col items-center gap-5">
+
+            <button
+              type="button"
+              onClick={onStart}
+              className="start-race-button group relative w-full max-w-sm overflow-hidden rounded-2xl px-10 py-4 text-lg font-black uppercase tracking-[0.18em] text-black transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] active:translate-y-0 active:scale-95"
+              style={{
+                fontFamily: "'Orbitron', monospace",
+              }}
+            >
+              <span className="absolute inset-0 bg-gradient-to-r from-cyan-300 via-emerald-300 to-yellow-300" />
+
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+              <span className="relative flex items-center justify-center gap-3">
+                <span>⚡</span>
+
+                <span>Start Race</span>
+
+                <span className="text-black/50">
+                  →
+                </span>
+              </span>
+            </button>
+
+            {/* ---------------------------------
+                HOW TO PLAY
+            --------------------------------- */}
+
+            <div className="glass-card w-full rounded-2xl p-4 sm:p-5">
+              <div className="mb-4 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-cyan-300">
+                How To Play
+              </div>
+
+              <div className="grid gap-3 text-xs text-white/65 sm:grid-cols-2">
+
+                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
+                  <span className="text-lg">
+                    ⌨️
+                  </span>
+
+                  <span>
+                    Type the displayed word to accelerate
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
+                  <span className="text-lg">
+                    ✅
+                  </span>
+
+                  <span>
+                    Correct letters boost your run
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
+                  <span className="text-lg">
+                    🔥
+                  </span>
+
+                  <span>
+                    Chain words for combo multipliers
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.025] p-3 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.05]">
+                  <span className="text-lg">
+                    📱
+                  </span>
+
+                  <span>
+                    Tap anywhere for mobile keyboard
+                  </span>
+                </div>
+
+              </div>
+            </div>
+
+            {/* ---------------------------------
+                HIGH SCORES
+            --------------------------------- */}
+
+            {highScores.length > 0 && (
+              <div className="glass-card w-full rounded-2xl p-4 sm:p-5">
+
+                <div className="mb-4 flex items-center justify-between">
+
+                  <div
+                    className="text-[10px] font-bold uppercase tracking-[0.25em] text-yellow-300"
+                    style={{
+                      fontFamily:
+                        "'Orbitron', monospace",
+                    }}
+                  >
+                    🏆 High Scores
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onClearScores}
+                    className="rounded-md px-2 py-1 text-[10px] uppercase tracking-wider text-white/35 transition hover:bg-white/10 hover:text-white/80"
+                  >
+                    Clear
+                  </button>
+
+                </div>
+
+                <div className="space-y-2">
+
+                  {highScores
+                    .slice(0, 5)
+                    .map((score, index) => (
+                      <div
+                        key={`${score.name}-${score.date}-${index}`}
+                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2.5 transition hover:border-cyan-300/20 hover:bg-cyan-300/[0.06]"
+                      >
+
+                        <div className="flex min-w-0 items-center gap-2">
+
+                          <span className="w-6 shrink-0 text-center text-sm font-bold text-yellow-300">
+                            {index === 0
+                              ? "🥇"
+                              : index === 1
+                              ? "🥈"
+                              : index === 2
+                              ? "🥉"
+                              : `${index + 1}.`}
+                          </span>
+
+                          <span className="truncate text-sm text-white/80">
+                            {score.name}
+                          </span>
+
+                        </div>
+
+                        <div className="ml-3 flex shrink-0 items-center gap-3 text-right">
+
+                          <span
+                            className="font-bold text-cyan-300"
+                            style={{
+                              fontFamily:
+                                "'Orbitron', monospace",
+                            }}
+                          >
+                            {score.score.toLocaleString()}
+                          </span>
+
+                          <span className="text-xs text-white/40">
+                            {score.wpm} WPM
+                          </span>
+
+                        </div>
+
+                      </div>
+                    ))}
+
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* -------------------------------------
+              CREATOR CREDIT
+          ------------------------------------- */}
+
+          <div className="mt-7 text-center">
+
+            <div className="mx-auto mb-3 h-px w-28 bg-gradient-to-r from-transparent via-cyan-300/40 to-transparent" />
+
+            <div className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/35">
+              Created By
+            </div>
+
+            <div
+              className="mt-1 text-sm font-black uppercase tracking-[0.22em] text-white/80"
+              style={{
+                fontFamily:
+                  "'Orbitron', monospace",
+              }}
+            >
+              LAEEQ KHAN JADOON
+            </div>
+
+          </div>
+
         </div>
       </div>
     </div>
   );
 }
-```
