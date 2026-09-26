@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+```tsx
+import { useEffect, useRef } from "react";
 import type { HighScoreEntry } from "./useHighScores";
 
 interface Props {
@@ -11,7 +12,6 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
   const canvasRef = useRef(null);
   const animRef = useRef(0);
   const tRef = useRef(0);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<"easy" | "medium" | "hard">("medium");
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -25,103 +25,75 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
       const W = canvas.width;
       const H = canvas.height;
 
-      // Deep Neon Cyber Sky
       const grd = ctx.createLinearGradient(0, 0, 0, H);
-      grd.addColorStop(0, "#050014");
-      grd.addColorStop(0.5, "#13022b");
-      grd.addColorStop(1, "#081026");
+      grd.addColorStop(0, "#0a0015");
+      grd.addColorStop(0.6, "#1a0030");
+      grd.addColorStop(1, "#0f3460");
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, W, H);
 
-      // Procedural Stars / Neon Grid Dust
-      for (let i = 0; i < 90; i++) {
-        const sx = (i * 97.5 + t * 0.1) % W;
+      for (let i = 0; i < 80; i++) {
+        const sx = (i * 97.5 + t * 0.05) % W;
         const sy = (i * 53.3) % (H * 0.6);
-        const twinkle = Math.sin(t * 0.04 + i) * 0.4 + 0.6;
+        const twinkle = Math.sin(t * 0.03 + i) * 0.4 + 0.6;
         ctx.globalAlpha = twinkle;
-        ctx.fillStyle = i % 2 === 0 ? "#00FFFF" : "#FF00FF";
+        ctx.fillStyle = "white";
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
       ctx.globalAlpha = 1;
 
-      // Distant Synth Skyline Silhouettes
-      const buildingWidths = [45, 30, 55, 40, 25, 50, 35];
-      const buildingHeights = [70, 110, 85, 130, 95, 60, 120];
-      ctx.fillStyle = "rgba(10, 4, 25, 0.9)";
-      let bx = 0;
-      while (bx < W) {
-        for (let b = 0; b < buildingWidths.length && bx < W; b++) {
-          const bw = buildingWidths[b];
-          const bh = buildingHeights[b];
-          ctx.fillRect(bx, H * 0.62 - bh, bw - 2, bh);
-          bx += bw + 3;
-        }
+      const roadGrd = ctx.createLinearGradient(0, H * 0.6, 0, H);
+      roadGrd.addColorStop(0, "#1a1a2e");
+      roadGrd.addColorStop(1, "#0f3460");
+      ctx.fillStyle = roadGrd;
+      ctx.fillRect(0, H * 0.6, W, H * 0.4);
+
+      ctx.save();
+      ctx.setLineDash([30, 30]);
+      ctx.lineDashOffset = -(t * 3);
+      ctx.strokeStyle = "rgba(255,255,0,0.5)";
+      ctx.lineWidth = 3;
+      ctx.shadowColor = "#FFFF00";
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(0, H * 0.75);
+      ctx.lineTo(W, H * 0.75);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      const bx = (t * 2) % (W + 120) - 60;
+      const by = H * 0.62;
+      ctx.translate(bx, by);
+
+      const spin = t * 0.15;
+      ctx.fillStyle = "#1a1a1a";
+      ctx.strokeStyle = "#444";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(-25, 16, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(25, 16, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = "#555";
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 6; i++) {
+        const a = spin + (i * Math.PI) / 3;
+        ctx.beginPath();
+        ctx.moveTo(-25, 16);
+        ctx.lineTo(-25 + Math.cos(a) * 11, 16 + Math.sin(a) * 11);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(25, 16);
+        ctx.lineTo(25 + Math.cos(a) * 9, 16 + Math.sin(a) * 9);
+        ctx.stroke();
       }
 
-      // Neon Highway Grid
-      const roadTop = H * 0.62;
-      const roadGrd = ctx.createLinearGradient(0, roadTop, 0, H);
-      roadGrd.addColorStop(0, "#0b0c1e");
-      roadGrd.addColorStop(0.3, "#091226");
-      roadGrd.addColorStop(1, "#04050d");
-      ctx.fillStyle = roadGrd;
-      ctx.fillRect(0, roadTop, W, H - roadTop);
-
-      // Glowing Neon Horizon Boundary
-      ctx.save();
-      ctx.shadowColor = "#00FFFF";
-      ctx.shadowBlur = 15;
-      ctx.strokeStyle = "#00FFFF";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, roadTop);
-      ctx.lineTo(W, roadTop);
-      ctx.stroke();
-      ctx.restore();
-
-      // Dashed Center Lanes (Animated)
-      ctx.save();
-      ctx.setLineDash([40, 35]);
-      ctx.lineDashOffset = -(t * 6);
-      ctx.strokeStyle = "#FFDD00";
-      ctx.shadowColor = "#FFDD00";
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, H * 0.78);
-      ctx.lineTo(W, H * 0.78);
-      ctx.stroke();
-      ctx.restore();
-
-      // Animated Bike on Title Screen
-      ctx.save();
-      const bikeX = (t * 2.5) % (W + 200) - 100;
-      const bikeY = H * 0.65;
-      ctx.translate(bikeX, bikeY);
-
-      // Wheels
-      const spin = t * 0.2;
-      ctx.fillStyle = "#111";
-      ctx.strokeStyle = "#00FFFF";
-      ctx.lineWidth = 2;
-      [-25, 25].forEach((wx) => {
-        ctx.beginPath();
-        ctx.arc(wx, 16, 13, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        for (let sp = 0; sp < 4; sp++) {
-          const a = spin + (sp * Math.PI) / 2;
-          ctx.beginPath();
-          ctx.moveTo(wx, 16);
-          ctx.lineTo(wx + Math.cos(a) * 11, 16 + Math.sin(a) * 11);
-          ctx.stroke();
-        }
-      });
-
-      // Neon Chassis
-      ctx.strokeStyle = "#FF0077";
-      ctx.shadowColor = "#FF0077";
-      ctx.shadowBlur = 12;
+      ctx.strokeStyle = "#CC3300";
       ctx.lineWidth = 4;
       ctx.lineJoin = "round";
       ctx.beginPath();
@@ -132,24 +104,33 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
       ctx.lineTo(25, 16);
       ctx.stroke();
 
-      // Cyber Body
-      ctx.fillStyle = "#00FFFF";
-      ctx.fillRect(-12, 0, 18, 12);
+      ctx.fillStyle = "#DD3300";
+      ctx.fillRect(-15, 0, 20, 14);
+      ctx.fillStyle = "#DD3300";
+      ctx.fillRect(-5, -8, 18, 8);
 
-      // Exhaust Trail
-      for (let i = 0; i < 10; i++) {
-        const ex = -32 - i * 14 + Math.sin(t * 0.25 + i) * 4;
-        const ey = 14 + Math.cos(t * 0.2 + i) * 3;
+      ctx.fillStyle = "#CC3300";
+      ctx.fillRect(-10, -18, 12, 14);
+      ctx.fillStyle = "#111";
+      ctx.beginPath();
+      ctx.arc(4, -18, 8, Math.PI, 0);
+      ctx.arc(4, -18, 8, 0, Math.PI);
+      ctx.fill();
+
+      for (let i = 0; i < 8; i++) {
+        const ex = -30 - i * 12 + Math.sin(t * 0.2 + i) * 3;
+        const ey = 14 + Math.cos(t * 0.15 + i) * 2;
+        const ea = ((8 - i) / 8) * 0.5;
         ctx.save();
-        ctx.globalAlpha = (10 - i) / 10 * 0.45;
-        ctx.fillStyle = i % 2 === 0 ? "#FF5500" : "#00FFFF";
+        ctx.globalAlpha = ea;
+        ctx.fillStyle = "#888";
         ctx.beginPath();
-        ctx.arc(ex, ey, 3 + i * 0.8, 0, Math.PI * 2);
+        ctx.arc(ex, ey, 4 + i, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
-
       ctx.restore();
+
       animRef.current = requestAnimationFrame(draw);
     };
 
@@ -158,3 +139,52 @@ export default function StartScreen({ onStart, highScores, onClearScores }: Prop
   }, []);
 
   return (
+
+```
+
+```html
+<canvas width="{800}" height="{500}" />
+```
+
+MOTO
+
+TYPE RACER
+
+CREATED BY LAEEQ KHAN JADOON
+
+START RACE
+
+How to Play
+
+Type matching letters to accelerate your bike
+
+Correct letters glow green, errors drain health
+
+Chain words for combo multipliers and turbo boost
+
+{highScores.length > 0 && (
+
+High Scores
+
+clear
+
+{highScores.slice(0, 5).map((s, i) => (
+
+{i + 1}.
+
+{s.name}
+
+{s.score.toLocaleString()}
+
+{s.wpm} wpm
+
+))}
+
+)}
+
+);
+}
+
+```
+
+```
