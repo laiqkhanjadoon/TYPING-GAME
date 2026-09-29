@@ -38,50 +38,48 @@ export interface FloatingText {
 }
 
 export interface GameEngineState {
-  // Game
   gameStarted: boolean;
   gameOver: boolean;
   paused: boolean;
 
-  // Settings
   difficulty: GameSettings["difficulty"];
   typingMode: GameSettings["typingMode"];
   vehicle: GameSettings["vehicle"];
 
-  // Typing
   currentWord: string;
   typedText: string;
   wordQueue: string[];
   currentWordIndex: number;
 
-  // Paragraph
   paragraph: string;
   paragraphProgress: number;
 
-  // Score
   score: number;
   combo: number;
   maxCombo: number;
+
   totalKeystrokes: number;
   correctKeystrokes: number;
   mistakes: number;
 
-  // Player
   lives: number;
   maxLives: number;
+
   health: number;
   maxHealth: number;
 
-  // Racing
   bikeSpeed: number;
   roadOffset: number;
   bgOffset: number;
+
   bikeX: number;
+  bikeY: number;
+
   boostActive: boolean;
   level: number;
 
-  // Effects
   shake: number;
+
   particles: Particle[];
   floatingTexts: FloatingText[];
 }
@@ -106,23 +104,29 @@ const INITIAL_STATE: GameEngineState = {
   score: 0,
   combo: 0,
   maxCombo: 0,
+
   totalKeystrokes: 0,
   correctKeystrokes: 0,
   mistakes: 0,
 
   lives: 3,
   maxLives: 3,
+
   health: 100,
   maxHealth: 100,
 
   bikeSpeed: 0,
   roadOffset: 0,
   bgOffset: 0,
+
   bikeX: 0,
+  bikeY: 0,
+
   boostActive: false,
   level: 1,
 
   shake: 0,
+
   particles: [],
   floatingTexts: [],
 };
@@ -145,7 +149,7 @@ function createParticles(
   y: number,
   color: string,
   count: number,
-  type: Particle["type"] = "spark"
+  type: Particle["type"]
 ): Particle[] {
   const particles: Particle[] = [];
 
@@ -168,7 +172,6 @@ function createParticles(
         Math.random() * 0.5,
 
       color,
-
       type,
     });
   }
@@ -187,30 +190,15 @@ export function useGameEngine() {
       INITIAL_STATE
     );
 
-  const updateState = useCallback(
-    (
-      updater:
-        | GameEngineState
-        | ((
-            prev: GameEngineState
-          ) => GameEngineState)
-    ) => {
-      setState((prev) => {
-        const next =
-          typeof updater === "function"
-            ? updater(prev)
-            : updater;
-
-        stateRef.current = next;
-
-        return next;
-      });
-    },
-    []
-  );
+  const updateRef = (
+    next: GameEngineState
+  ) => {
+    stateRef.current = next;
+    return next;
+  };
 
   // ============================================================
-  // START GAME
+  // START
   // ============================================================
 
   const startGame = useCallback(
@@ -226,17 +214,15 @@ export function useGameEngine() {
       const lives =
         difficulty.lives;
 
-      const level = 1;
-
       const queue =
         generateWordQueue(
-          50,
-          level
+          60,
+          1
         );
 
       const paragraph =
         createParagraph(
-          level,
+          1,
           45
         );
 
@@ -257,10 +243,7 @@ export function useGameEngine() {
           settings.vehicle,
 
         currentWord:
-          settings.typingMode ===
-          "word"
-            ? queue[0]
-            : "",
+          queue[0],
 
         typedText: "",
 
@@ -277,32 +260,25 @@ export function useGameEngine() {
         maxLives: lives,
 
         health: 100,
-
         maxHealth: 100,
 
-        level,
-
         bikeSpeed:
-          2 *
+          3 *
           difficulty.speedMultiplier,
 
         roadOffset: 0,
-
         bgOffset: 0,
 
         bikeX: 0,
+        bikeY: 0,
 
         boostActive: false,
 
-        particles:
-          createParticles(
-            0,
-            0,
-            "#00ffff",
-            12,
-            "star"
-          ),
+        level: 1,
 
+        shake: 0,
+
+        particles: [],
         floatingTexts: [],
       };
 
@@ -328,277 +304,243 @@ export function useGameEngine() {
           return prev;
         }
 
-        const next = {
+        return updateRef({
           ...prev,
           paused: !prev.paused,
-        };
-
-        stateRef.current =
-          next;
-
-        return next;
+        });
       });
     }, []);
 
   // ============================================================
-  // COMPLETE WORD
+  // NEXT WORD
   // ============================================================
 
-  const completeWord = useCallback(
-    (
-      prev: GameEngineState
-    ): GameEngineState => {
-      const nextIndex =
-        prev.currentWordIndex +
-        1;
+  const nextWord = (
+    prev: GameEngineState
+  ): GameEngineState => {
+    const nextIndex =
+      prev.currentWordIndex + 1;
 
-      const nextWord =
-        prev.wordQueue[
-          nextIndex
-        ] ??
-        getWordForLevel(
+    let queue =
+      prev.wordQueue;
+
+    if (
+      nextIndex >=
+      queue.length - 10
+    ) {
+      queue = [
+        ...queue,
+        ...generateWordQueue(
+          30,
           prev.level
-        );
+        ),
+      ];
+    }
 
-      const newScore =
-        prev.score +
-        100 +
-        prev.combo * 10;
+    const nextWordValue =
+      queue[nextIndex] ??
+      getWordForLevel(
+        prev.level
+      );
 
-      const newCombo =
-        prev.combo + 1;
+    const newCombo =
+      prev.combo + 1;
 
-      const newLevel =
+    const newScore =
+      prev.score +
+      100 +
+      newCombo * 10;
+
+    const newLevel =
+      Math.max(
+        1,
+        Math.floor(
+          newScore / 1000
+        ) + 1
+      );
+
+    const difficulty =
+      DIFFICULTY_SETTINGS[
+        prev.difficulty
+      ];
+
+    const speed =
+      Math.min(
+        16,
+        3 *
+          difficulty.speedMultiplier +
+          newLevel * 0.35
+      );
+
+    const boost =
+      newCombo >= 3;
+
+    return {
+      ...prev,
+
+      currentWord:
+        nextWordValue,
+
+      typedText: "",
+
+      currentWordIndex:
+        nextIndex,
+
+      wordQueue: queue,
+
+      score: newScore,
+
+      combo: newCombo,
+
+      maxCombo:
         Math.max(
-          1,
-          Math.floor(
-            newScore / 1000
-          ) + 1
-        );
+          prev.maxCombo,
+          newCombo
+        ),
 
-      const difficulty =
-        DIFFICULTY_SETTINGS[
-          prev.difficulty
-        ];
+      level: newLevel,
 
-      const newSpeed =
-        Math.min(
-          14,
-          2 *
-            difficulty.speedMultiplier +
-            newLevel * 0.45
-        );
+      bikeSpeed: speed,
 
-      const boost =
-        newCombo >= 5;
+      boostActive: boost,
 
-      const newParticles =
-        createParticles(
+      health: Math.min(
+        100,
+        prev.health + 3
+      ),
+
+      roadOffset:
+        prev.roadOffset + 15,
+
+      bgOffset:
+        prev.bgOffset + 5,
+
+      particles: [
+        ...prev.particles,
+        ...createParticles(
           prev.bikeX,
-          0,
+          prev.bikeY,
           boost
             ? "#ff6600"
             : "#00ffff",
-          10,
+          boost ? 12 : 5,
           boost
             ? "exhaust"
             : "spark"
-        );
+        ),
+      ].slice(-120),
 
-      const floatingText: FloatingText =
+      floatingTexts: [
+        ...prev.floatingTexts,
         {
           x: prev.bikeX,
-          y: 120,
+          y: prev.bikeY - 50,
           text:
-            newCombo >= 5
-              ? `COMBO x${newCombo}!`
+            boost
+              ? `BOOST x${newCombo}`
               : "+100",
           color:
-            newCombo >= 5
+            boost
               ? "#ff6600"
               : "#00ffff",
           life: 1,
-        };
+        },
+      ].slice(-20),
+    };
+  };
 
-      return {
-        ...prev,
+  // ============================================================
+  // PARAGRAPH COMPLETE
+  // ============================================================
 
-        currentWord:
-          nextWord,
+  const completeParagraph = (
+    prev: GameEngineState
+  ): GameEngineState => {
+    const newCombo =
+      prev.combo + 1;
 
-        typedText: "",
+    const newScore =
+      prev.score +
+      1000 +
+      newCombo * 50;
 
-        currentWordIndex:
-          nextIndex,
+    const newLevel =
+      Math.max(
+        1,
+        Math.floor(
+          newScore / 1000
+        ) + 1
+      );
 
-        wordQueue:
-          nextIndex >=
-          prev.wordQueue.length - 10
-            ? [
-                ...prev.wordQueue,
-                ...generateWordQueue(
-                  30,
-                  newLevel
-                ),
-              ]
-            : prev.wordQueue,
+    const paragraph =
+      createParagraph(
+        newLevel,
+        45
+      );
 
-        score: newScore,
+    return {
+      ...prev,
 
-        combo: newCombo,
+      paragraph,
 
-        maxCombo:
-          Math.max(
-            prev.maxCombo,
-            newCombo
-          ),
+      paragraphProgress: 0,
 
-        correctKeystrokes:
-          prev.correctKeystrokes +
-          prev.currentWord.length,
+      typedText: "",
 
-        level: newLevel,
+      score: newScore,
 
-        bikeSpeed: newSpeed,
+      combo: newCombo,
 
-        boostActive: boost,
-
-        health: Math.min(
-          prev.maxHealth,
-          prev.health + 5
+      maxCombo:
+        Math.max(
+          prev.maxCombo,
+          newCombo
         ),
 
-        roadOffset:
-          prev.roadOffset + 20,
+      level: newLevel,
 
-        bgOffset:
-          prev.bgOffset + 8,
+      bikeSpeed:
+        Math.min(
+          16,
+          prev.bikeSpeed + 1
+        ),
 
-        particles: [
-          ...prev.particles,
-          ...newParticles,
-        ].slice(-100),
+      boostActive: true,
 
-        floatingTexts: [
-          ...prev.floatingTexts,
-          floatingText,
-        ].slice(-20),
-      };
-    },
-    []
-  );
+      health: 100,
 
-  // ============================================================
-  // COMPLETE PARAGRAPH
-  // ============================================================
+      roadOffset:
+        prev.roadOffset + 80,
 
-  const completeParagraph =
-    useCallback(
-      (
-        prev: GameEngineState
-      ): GameEngineState => {
-        const newScore =
-          prev.score +
-          1000 +
-          prev.combo * 50;
+      bgOffset:
+        prev.bgOffset + 30,
 
-        const newCombo =
-          prev.combo + 1;
+      particles: [
+        ...prev.particles,
+        ...createParticles(
+          prev.bikeX,
+          prev.bikeY,
+          "#00ffff",
+          25,
+          "star"
+        ),
+      ].slice(-120),
 
-        const newLevel =
-          Math.max(
-            1,
-            Math.floor(
-              newScore / 1000
-            ) + 1
-          );
-
-        const difficulty =
-          DIFFICULTY_SETTINGS[
-            prev.difficulty
-          ];
-
-        const newSpeed =
-          Math.min(
-            14,
-            2 *
-              difficulty.speedMultiplier +
-              newLevel * 0.45
-          );
-
-        const newParagraph =
-          createParagraph(
-            newLevel,
-            45
-          );
-
-        return {
-          ...prev,
-
-          paragraph:
-            newParagraph,
-
-          paragraphProgress: 0,
-
-          typedText: "",
-
-          score: newScore,
-
-          combo: newCombo,
-
-          maxCombo:
-            Math.max(
-              prev.maxCombo,
-              newCombo
-            ),
-
-          level: newLevel,
-
-          bikeSpeed:
-            newSpeed,
-
-          boostActive:
-            newCombo >= 3,
-
-          health: Math.min(
-            prev.maxHealth,
-            prev.health + 15
-          ),
-
-          roadOffset:
-            prev.roadOffset + 80,
-
-          bgOffset:
-            prev.bgOffset + 30,
-
-          particles: [
-            ...prev.particles,
-            ...createParticles(
-              prev.bikeX,
-              0,
-              "#00ffff",
-              25,
-              "star"
-            ),
-          ].slice(-100),
-
-          floatingTexts: [
-            ...prev.floatingTexts,
-            {
-              x: prev.bikeX,
-              y: 120,
-              text: "PARAGRAPH COMPLETE!",
-              color: "#00ffff",
-              life: 1,
-            },
-          ].slice(-20),
-        };
-      },
-      []
-    );
+      floatingTexts: [
+        ...prev.floatingTexts,
+        {
+          x: prev.bikeX,
+          y: prev.bikeY - 50,
+          text: "PARAGRAPH COMPLETE!",
+          color: "#00ffff",
+          life: 1,
+        },
+      ].slice(-20),
+    };
+  };
 
   // ============================================================
-  // HANDLE TYPING
+  // KEY INPUT
   // ============================================================
 
   const handleKeyInput =
@@ -613,19 +555,18 @@ export function useGameEngine() {
             return prev;
           }
 
-          // ----------------------------------------------------
           // BACKSPACE
-          // ----------------------------------------------------
-
-          if (key === "Backspace") {
+          if (
+            key === "Backspace"
+          ) {
             if (
-              prev.typedText.length ===
-              0
+              prev.typedText
+                .length === 0
             ) {
               return prev;
             }
 
-            const next = {
+            return updateRef({
               ...prev,
 
               typedText:
@@ -641,18 +582,12 @@ export function useGameEngine() {
               combo: 0,
 
               boostActive: false,
-            };
-
-            stateRef.current =
-              next;
-
-            return next;
+            });
           }
 
-          // Ignore modifier/special keys
+          // Ignore special keys
           if (
-            key.length !== 1 &&
-            key !== " "
+            key.length !== 1
           ) {
             return prev;
           }
@@ -668,44 +603,35 @@ export function useGameEngine() {
             const expected =
               prev.currentWord;
 
-            // Space submits word
-            if (key === " ") {
-              if (
-                prev.typedText ===
-                expected
-              ) {
-                const next =
-                  completeWord(
-                    {
-                      ...prev,
-                      totalKeystrokes:
-                        prev.totalKeystrokes +
-                        1,
-                    }
-                  );
+            const position =
+              prev.typedText
+                .length;
 
-                stateRef.current =
-                  next;
+            const expectedChar =
+              expected[position];
 
-                return next;
-              }
-
-              // Wrong space
-              const newHealth =
+            // Wrong character
+            if (
+              key !==
+              expectedChar
+            ) {
+              const health =
                 Math.max(
                   0,
-                  prev.health - 15
+                  prev.health -
+                    8
                 );
 
-              const newLives =
-                newHealth <= 0
-                  ? prev.lives - 1
+              const lives =
+                health <= 0
+                  ? prev.lives -
+                    1
                   : prev.lives;
 
               const gameOver =
-                newLives <= 0;
+                lives <= 0;
 
-              const next = {
+              return updateRef({
                 ...prev,
 
                 totalKeystrokes:
@@ -713,159 +639,128 @@ export function useGameEngine() {
                   1,
 
                 mistakes:
-                  prev.mistakes + 1,
+                  prev.mistakes +
+                  1,
 
                 combo: 0,
 
-                boostActive: false,
+                boostActive:
+                  false,
 
-                health: gameOver
-                  ? 0
-                  : newHealth,
+                health:
+                  gameOver
+                    ? 0
+                    : health,
 
                 lives:
                   gameOver
                     ? 0
-                    : newLives,
+                    : lives,
+
+                shake: 8,
 
                 gameOver,
-              };
 
-              stateRef.current =
-                next;
-
-              return next;
-            }
-
-            // Normal character
-            const expectedChar =
-              expected[
-                prev.typedText
-                  .length
-              ];
-
-            const correct =
-              key ===
-              expectedChar;
-
-            if (correct) {
-              const newTyped =
-                prev.typedText +
-                key;
-
-              const next = {
-                ...prev,
-
-                typedText:
-                  newTyped,
-
-                totalKeystrokes:
-                  prev.totalKeystrokes +
-                  1,
-
-                correctKeystrokes:
-                  prev.correctKeystrokes +
-                  1,
-
-                health: Math.min(
-                  prev.maxHealth,
-                  prev.health + 0.5
-                ),
-
-                bikeSpeed:
-                  Math.min(
-                    14,
-                    prev.bikeSpeed +
-                      0.03
+                particles: [
+                  ...prev.particles,
+                  ...createParticles(
+                    prev.bikeX,
+                    prev.bikeY,
+                    "#ff3333",
+                    8,
+                    "spark"
                   ),
+                ].slice(-120),
 
-                roadOffset:
-                  prev.roadOffset +
-                  2,
-
-                bgOffset:
-                  prev.bgOffset +
-                  1,
-              };
-
-              stateRef.current =
-                next;
-
-              return next;
+                floatingTexts: [
+                  ...prev.floatingTexts,
+                  {
+                    x: prev.bikeX,
+                    y:
+                      prev.bikeY -
+                      50,
+                    text: "MISS!",
+                    color:
+                      "#ff3333",
+                    life: 1,
+                  },
+                ].slice(-20),
+              });
             }
 
-            // Wrong character
-            const newHealth =
-              Math.max(
-                0,
-                prev.health - 8
-              );
+            // Correct character
+            const newTyped =
+              prev.typedText +
+              key;
 
-            const newLives =
-              newHealth <= 0
-                ? prev.lives - 1
-                : prev.lives;
+            const newCorrect =
+              prev.correctKeystrokes +
+              1;
 
-            const gameOver =
-              newLives <= 0;
+            const newTotal =
+              prev.totalKeystrokes +
+              1;
 
-            const next = {
+            // ==================================================
+            // IMPORTANT:
+            // LAST LETTER AUTO COMPLETES WORD
+            // NO SPACE REQUIRED
+            // ==================================================
+
+            if (
+              newTyped.length >=
+              expected.length
+            ) {
+              return updateRef({
+                ...nextWord({
+                  ...prev,
+
+                  typedText:
+                    newTyped,
+
+                  correctKeystrokes:
+                    newCorrect,
+
+                  totalKeystrokes:
+                    newTotal,
+                }),
+              });
+            }
+
+            return updateRef({
               ...prev,
 
               typedText:
-                prev.typedText,
+                newTyped,
+
+              correctKeystrokes:
+                newCorrect,
 
               totalKeystrokes:
-                prev.totalKeystrokes +
+                newTotal,
+
+              bikeSpeed:
+                Math.min(
+                  16,
+                  prev.bikeSpeed +
+                    0.03
+                ),
+
+              roadOffset:
+                prev.roadOffset +
+                2,
+
+              bgOffset:
+                prev.bgOffset +
                 1,
 
-              mistakes:
-                prev.mistakes + 1,
-
-              combo: 0,
-
-              boostActive: false,
-
-              health: gameOver
-                ? 0
-                : newHealth,
-
-              lives:
-                gameOver
-                  ? 0
-                  : newLives,
-
-              shake: 8,
-
-              particles: [
-                ...prev.particles,
-                ...createParticles(
-                  prev.bikeX,
-                  0,
-                  "#ff3333",
-                  6,
-                  "spark"
+              health:
+                Math.min(
+                  100,
+                  prev.health +
+                    0.2
                 ),
-              ].slice(-100),
-
-              floatingTexts: [
-                ...prev.floatingTexts,
-                {
-                  x: prev.bikeX,
-                  y: 130,
-                  text: "MISS!",
-                  color: "#ff3333",
-                  life: 1,
-                },
-              ].slice(-20),
-
-              gameOver,
-            };
-
-            stateRef.current =
-              next;
-
-            return next;
+            });
           }
 
           // ====================================================
@@ -881,162 +776,142 @@ export function useGameEngine() {
           const expected =
             paragraph[position];
 
-          // Correct character
-          if (key === expected) {
-            const newProgress =
-              position + 1;
+          // Wrong
+          if (
+            key !== expected
+          ) {
+            const health =
+              Math.max(
+                0,
+                prev.health -
+                  5
+              );
 
-            const completed =
-              newProgress >=
-              paragraph.length;
+            const lives =
+              health <= 0
+                ? prev.lives -
+                  1
+                : prev.lives;
 
-            if (completed) {
-              const next =
-                completeParagraph(
-                  {
-                    ...prev,
-                    totalKeystrokes:
-                      prev.totalKeystrokes +
-                      1,
+            const gameOver =
+              lives <= 0;
 
-                    correctKeystrokes:
-                      prev.correctKeystrokes +
-                      1,
-                  }
-                );
-
-              stateRef.current =
-                next;
-
-              return next;
-            }
-
-            const next = {
+            return updateRef({
               ...prev,
-
-              typedText:
-                paragraph.slice(
-                  0,
-                  newProgress
-                ),
-
-              paragraphProgress:
-                newProgress,
 
               totalKeystrokes:
                 prev.totalKeystrokes +
                 1,
 
-              correctKeystrokes:
-                prev.correctKeystrokes +
+              mistakes:
+                prev.mistakes +
                 1,
 
-              health: Math.min(
-                prev.maxHealth,
-                prev.health + 0.25
-              ),
+              combo: 0,
 
-              bikeSpeed:
-                Math.min(
-                  14,
-                  prev.bikeSpeed +
-                    0.015
+              boostActive:
+                false,
+
+              health:
+                gameOver
+                  ? 0
+                  : health,
+
+              lives:
+                gameOver
+                  ? 0
+                  : lives,
+
+              shake: 7,
+
+              gameOver,
+
+              particles: [
+                ...prev.particles,
+                ...createParticles(
+                  prev.bikeX,
+                  prev.bikeY,
+                  "#ff3333",
+                  6,
+                  "spark"
                 ),
-
-              roadOffset:
-                prev.roadOffset +
-                1.5,
-
-              bgOffset:
-                prev.bgOffset +
-                0.7,
-            };
-
-            stateRef.current =
-              next;
-
-            return next;
+              ].slice(-120),
+            });
           }
 
-          // Wrong paragraph character
-          const newHealth =
-            Math.max(
-              0,
-              prev.health - 5
+          // Correct
+          const newProgress =
+            position + 1;
+
+          const complete =
+            newProgress >=
+            paragraph.length;
+
+          if (complete) {
+            return updateRef(
+              completeParagraph({
+                ...prev,
+
+                totalKeystrokes:
+                  prev.totalKeystrokes +
+                  1,
+
+                correctKeystrokes:
+                  prev.correctKeystrokes +
+                  1,
+              })
             );
+          }
 
-          const newLives =
-            newHealth <= 0
-              ? prev.lives - 1
-              : prev.lives;
-
-          const gameOver =
-            newLives <= 0;
-
-          const next = {
+          return updateRef({
             ...prev,
+
+            typedText:
+              paragraph.slice(
+                0,
+                newProgress
+              ),
+
+            paragraphProgress:
+              newProgress,
 
             totalKeystrokes:
               prev.totalKeystrokes +
               1,
 
-            mistakes:
-              prev.mistakes + 1,
+            correctKeystrokes:
+              prev.correctKeystrokes +
+              1,
 
-            combo: 0,
-
-            boostActive: false,
-
-            health: gameOver
-              ? 0
-              : newHealth,
-
-            lives:
-              gameOver
-                ? 0
-                : newLives,
-
-            shake: 7,
-
-            particles: [
-              ...prev.particles,
-              ...createParticles(
-                prev.bikeX,
-                0,
-                "#ff3333",
-                5,
-                "spark"
+            bikeSpeed:
+              Math.min(
+                16,
+                prev.bikeSpeed +
+                  0.015
               ),
-            ].slice(-100),
 
-            floatingTexts: [
-              ...prev.floatingTexts,
-              {
-                x: prev.bikeX,
-                y: 130,
-                text: "MISS!",
-                color: "#ff3333",
-                life: 1,
-              },
-            ].slice(-20),
+            roadOffset:
+              prev.roadOffset +
+              1.5,
 
-            gameOver,
-          };
+            bgOffset:
+              prev.bgOffset +
+              0.7,
 
-          stateRef.current =
-            next;
-
-          return next;
+            health:
+              Math.min(
+                100,
+                prev.health +
+                  0.15
+              ),
+          });
         });
       },
-      [
-        completeWord,
-        completeParagraph,
-      ]
+      []
     );
 
   // ============================================================
-  // GAME ANIMATION / PHYSICS
+  // ANIMATION ENGINE
   // ============================================================
 
   useEffect(() => {
@@ -1051,88 +926,104 @@ export function useGameEngine() {
             return prev;
           }
 
-          const difficulty =
-            DIFFICULTY_SETTINGS[
-              prev.difficulty
-            ];
+          // Smooth speed
+          const target =
+            3 +
+            prev.level *
+              0.35;
 
-          const baseSpeed =
-            2 *
-            difficulty.speedMultiplier;
-
-          // Gradually increase speed
-          const targetSpeed =
-            Math.min(
-              14,
-              baseSpeed +
-                prev.level * 0.45
-            );
-
-          const nextSpeed =
-            prev.boostActive
+          const speed =
+            prev.bikeSpeed <
+            target
               ? Math.min(
-                  16,
+                  target,
                   prev.bikeSpeed +
-                    0.12
+                    0.08
                 )
               : Math.max(
-                  baseSpeed,
+                  target,
                   prev.bikeSpeed -
-                    0.025
+                    0.03
                 );
 
-          const nextParticles =
+          // Horizontal vehicle movement
+          const newBikeX =
+            prev.bikeX +
+            speed * 1.2;
+
+          // Keep vehicle moving across track
+          const wrappedX =
+            newBikeX > 900
+              ? -150
+              : newBikeX;
+
+          // Vehicle vertical bounce
+          const newBikeY =
+            Math.sin(
+              performance.now() *
+                0.008
+            ) *
+              Math.min(
+                speed * 0.8,
+                8
+              );
+
+          // Road animation
+          const roadOffset =
+            prev.roadOffset +
+            speed * 2;
+
+          const bgOffset =
+            prev.bgOffset +
+            speed * 0.35;
+
+          // Particles
+          const particles =
             prev.particles
               .map((p) => ({
                 ...p,
 
                 x:
-                  p.x +
-                  (Math.random() -
-                    0.5) *
-                    2,
+                  p.x -
+                  speed *
+                  0.5,
 
                 y:
                   p.y +
                   (Math.random() -
-                    0.5) *
-                    2,
+                    0.5),
 
                 life:
                   p.life -
                   0.025,
 
                 size:
-                  p.size *
-                  1.01,
+                  p.size * 1.01,
               }))
               .filter(
                 (p) =>
                   p.life > 0
               );
 
-          // Add exhaust while moving
-          if (
-            nextSpeed > 2
-          ) {
-            nextParticles.push({
+          // Exhaust
+          if (speed > 2) {
+            particles.push({
               x:
-                prev.bikeX - 35,
+                wrappedX -
+                45,
 
               y:
-                0 +
-                (Math.random() -
-                  0.5) *
-                  20,
+                newBikeY +
+                20,
 
               size:
                 2 +
                 Math.random() * 4,
 
               life:
-                0.5 +
+                0.45 +
                 Math.random() *
-                  0.4,
+                  0.35,
 
               color:
                 prev.boostActive
@@ -1146,13 +1037,14 @@ export function useGameEngine() {
             });
           }
 
-          const nextFloatingTexts =
+          // Floating text
+          const floatingTexts =
             prev.floatingTexts
               .map((ft) => ({
                 ...ft,
 
                 y:
-                  ft.y - 0.7,
+                  ft.y - 0.8,
 
                 life:
                   ft.life -
@@ -1163,74 +1055,56 @@ export function useGameEngine() {
                   ft.life > 0
               );
 
-          const nextShake =
+          // Shake recovery
+          const shake =
             Math.max(
               0,
-              prev.shake - 0.6
+              prev.shake - 0.7
             );
 
-          const nextRoadOffset =
-            prev.roadOffset +
-            nextSpeed;
+          // Slowly reduce boost
+          const boostActive =
+            prev.boostActive &&
+            Math.random() > 0.035;
 
-          const nextBgOffset =
-            prev.bgOffset +
-            nextSpeed *
-              0.25;
-
-          const nextBikeX =
-            prev.bikeX === 0
-              ? 0
-              : prev.bikeX;
-
-          const next = {
+          return updateRef({
             ...prev,
 
             bikeSpeed:
-              Math.min(
-                targetSpeed,
-                nextSpeed
-              ),
-
-            roadOffset:
-              nextRoadOffset,
-
-            bgOffset:
-              nextBgOffset,
+              speed,
 
             bikeX:
-              nextBikeX,
+              wrappedX,
 
-            shake:
-              nextShake,
+            bikeY:
+              newBikeY,
+
+            roadOffset,
+
+            bgOffset,
+
+            shake,
+
+            boostActive,
 
             particles:
-              nextParticles.slice(
-                -120
+              particles.slice(
+                -150
               ),
 
             floatingTexts:
-              nextFloatingTexts.slice(
+              floatingTexts.slice(
                 -25
               ),
-          };
-
-          stateRef.current =
-            next;
-
-          return next;
+          });
         });
-      }, 50);
+      }, 30);
 
     return () =>
       window.clearInterval(
         interval
       );
   }, []);
-
-  // ============================================================
-  // RETURN
-  // ============================================================
 
   return {
     state,
