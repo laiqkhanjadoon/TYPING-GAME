@@ -175,7 +175,9 @@ function createParagraph(
   const words: string[] = [];
 
   for (let i = 0; i < count; i++) {
-    words.push(getWordForLevel(level));
+    words.push(
+      getWordForLevel(level)
+    );
   }
 
   return words.join(" ");
@@ -194,11 +196,13 @@ function createParticles(
     particles.push({
       x:
         x +
-        (Math.random() - 0.5) * 35,
+        (Math.random() - 0.5) *
+          35,
 
       y:
         y +
-        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) *
+          20,
 
       size:
         2 +
@@ -232,7 +236,10 @@ function calculateWPM(
   seconds: number
 ) {
   const minutes =
-    Math.max(seconds / 60, 1 / 60);
+    Math.max(
+      seconds / 60,
+      1 / 60
+    );
 
   return Math.round(
     correct / 5 / minutes
@@ -254,11 +261,9 @@ export function useGameEngine() {
       INITIAL_STATE
     );
 
-  // Time of previous correctly typed character.
   const lastTypingTimeRef =
     useRef(0);
 
-  // Current target speed based on typing cadence.
   const targetSpeedRef =
     useRef(0);
 
@@ -319,11 +324,13 @@ export function useGameEngine() {
           settings.vehicle,
 
         currentWord:
-          queue[0] ?? "start",
+          queue[0] ??
+          "start",
 
         typedText: "",
 
-        wordQueue: queue,
+        wordQueue:
+          queue,
 
         currentWordIndex: 0,
 
@@ -380,7 +387,8 @@ export function useGameEngine() {
       lastTypingTimeRef.current =
         now;
 
-      targetSpeedRef.current = 0;
+      targetSpeedRef.current =
+        0;
 
       setState(newState);
     },
@@ -451,7 +459,9 @@ export function useGameEngine() {
     const level =
       Math.max(
         1,
-        Math.floor(score / 1000) + 1
+        Math.floor(
+          score / 1000
+        ) + 1
       );
 
     return {
@@ -501,7 +511,9 @@ export function useGameEngine() {
           combo >= 3
             ? "#ff6600"
             : "#00ffff",
-          combo >= 3 ? 12 : 5,
+          combo >= 3
+            ? 12
+            : 5,
           combo >= 3
             ? "exhaust"
             : "spark"
@@ -514,7 +526,8 @@ export function useGameEngine() {
         {
           x: prev.bikeX,
           y:
-            prev.bikeY - 50,
+            prev.bikeY -
+            50,
 
           text:
             combo >= 3
@@ -550,7 +563,9 @@ export function useGameEngine() {
     const level =
       Math.max(
         1,
-        Math.floor(score / 1000) + 1
+        Math.floor(
+          score / 1000
+        ) + 1
       );
 
     return {
@@ -601,7 +616,8 @@ export function useGameEngine() {
         {
           x: prev.bikeX,
           y:
-            prev.bikeY - 50,
+            prev.bikeY -
+            50,
 
           text:
             "PARAGRAPH COMPLETE!",
@@ -625,7 +641,7 @@ export function useGameEngine() {
     damage: number,
     oldKeyStat: KeyStat
   ) => {
-    let health =
+    const health =
       Math.max(
         0,
         prev.health - damage
@@ -637,9 +653,9 @@ export function useGameEngine() {
     let gameOver =
       false;
 
-    // One health bar = one life.
-    // When health reaches zero, lose one life
-    // and refill health for the next life.
+    let finalHealth =
+      health;
+
     if (health <= 0) {
       lives =
         Math.max(
@@ -649,12 +665,24 @@ export function useGameEngine() {
 
       if (lives <= 0) {
         gameOver = true;
-        health = 0;
+        finalHealth = 0;
       } else {
-        health =
+        finalHealth =
           prev.maxHealth;
       }
     }
+
+    const total =
+      prev.totalKeystrokes + 1;
+
+    const mistakes =
+      prev.mistakes + 1;
+
+    const accuracy =
+      calculateAccuracy(
+        prev.correctKeystrokes,
+        total
+      );
 
     if (gameOver) {
       targetSpeedRef.current = 0;
@@ -664,16 +692,16 @@ export function useGameEngine() {
       ...prev,
 
       totalKeystrokes:
-        prev.totalKeystrokes + 1,
+        total,
 
-      mistakes:
-        prev.mistakes + 1,
+      mistakes,
 
       combo: 0,
 
       boostActive: false,
 
-      health,
+      health:
+        finalHealth,
 
       lives,
 
@@ -685,10 +713,12 @@ export function useGameEngine() {
           : 14,
 
       bikeSpeed:
-        Math.max(
-          0,
-          prev.bikeSpeed - 30
-        ),
+        gameOver
+          ? 0
+          : Math.max(
+              0,
+              prev.bikeSpeed - 30
+            ),
 
       maxSpeed:
         prev.maxSpeed,
@@ -705,10 +735,17 @@ export function useGameEngine() {
         },
       },
 
-      accuracy:
-        calculateAccuracy(
+      accuracy,
+
+      wpm:
+        calculateWPM(
           prev.correctKeystrokes,
-          prev.totalKeystrokes + 1
+          Math.max(
+            0,
+            (performance.now() -
+              prev.startTime) /
+              1000
+          )
         ),
 
       particles: [
@@ -718,7 +755,9 @@ export function useGameEngine() {
           prev.bikeX,
           prev.bikeY,
           "#ff2222",
-          gameOver ? 35 : 12,
+          gameOver
+            ? 35
+            : 12,
           gameOver
             ? "smoke"
             : "spark"
@@ -731,7 +770,8 @@ export function useGameEngine() {
         {
           x: prev.bikeX,
           y:
-            prev.bikeY - 55,
+            prev.bikeY -
+            55,
 
           text:
             gameOver
@@ -830,10 +870,7 @@ export function useGameEngine() {
               );
             }
 
-            // --------------------------------------------------
             // CORRECT CHARACTER
-            // --------------------------------------------------
-
             const interval =
               lastTypingTimeRef.current >
               0
@@ -844,8 +881,6 @@ export function useGameEngine() {
             lastTypingTimeRef.current =
               now;
 
-            // Characters per minute based
-            // on current typing rhythm.
             const cadenceCPM =
               Math.min(
                 600,
@@ -864,8 +899,6 @@ export function useGameEngine() {
                 prev.difficulty
               ].speedMultiplier;
 
-            // Typing rhythm directly controls
-            // vehicle target speed.
             const targetSpeed =
               Math.min(
                 280,
@@ -899,7 +932,8 @@ export function useGameEngine() {
 
             const stat: KeyStat = {
               correct:
-                oldKeyStat.correct + 1,
+                oldKeyStat.correct +
+                1,
 
               wrong:
                 oldKeyStat.wrong,
@@ -937,29 +971,15 @@ export function useGameEngine() {
                     stat,
                 },
 
-                // Don't instantly jump.
-                // Animation loop smoothly approaches target.
-                bikeSpeed:
-                  prev.bikeSpeed,
-
-                roadOffset:
-                  prev.roadOffset,
-
-                bgOffset:
-                  prev.bgOffset,
-
                 health:
                   Math.min(
                     prev.maxHealth,
-                    prev.health + 0.2
+                    prev.health +
+                      0.2
                   ),
               };
 
-            // --------------------------------------------------
             // WORD COMPLETE
-            // NO SPACE REQUIRED
-            // --------------------------------------------------
-
             if (
               typed.length >=
               prev.currentWord.length
@@ -978,7 +998,6 @@ export function useGameEngine() {
 
           // ====================================================
           // PARAGRAPH MODE
-          // SPACE IS REQUIRED
           // ====================================================
 
           const expected =
@@ -986,7 +1005,6 @@ export function useGameEngine() {
               prev.paragraphProgress
             ];
 
-          // WRONG CHARACTER
           if (
             key !== expected
           ) {
@@ -1102,25 +1120,14 @@ export function useGameEngine() {
                 },
               },
 
-              bikeSpeed:
-                prev.bikeSpeed,
-
-              roadOffset:
-                prev.roadOffset,
-
-              bgOffset:
-                prev.bgOffset,
-
               health:
                 Math.min(
                   prev.maxHealth,
-                  prev.health + 0.15
+                  prev.health +
+                    0.15
                 ),
             };
 
-          // Paragraph naturally contains spaces.
-          // User MUST press Space to continue
-          // from one word to next.
           if (
             completed
           ) {
@@ -1153,6 +1160,76 @@ export function useGameEngine() {
             return prev;
           }
 
+          // IMPORTANT:
+          // Once game is over, freeze gameplay stats.
+          // Only particles/shake are allowed to finish.
+          if (
+            prev.gameOver
+          ) {
+            const particles =
+              prev.particles
+                .map((p) => ({
+                  ...p,
+
+                  x:
+                    p.x -
+                    Math.max(
+                      1,
+                      prev.bikeSpeed *
+                        0.01
+                    ),
+
+                  life:
+                    p.life -
+                    0.025,
+                }))
+                .filter(
+                  (p) =>
+                    p.life > 0
+                );
+
+            const floatingTexts =
+              prev.floatingTexts
+                .map((ft) => ({
+                  ...ft,
+
+                  y:
+                    ft.y -
+                    0.8,
+
+                  life:
+                    ft.life -
+                    0.025,
+                }))
+                .filter(
+                  (ft) =>
+                    ft.life > 0
+                );
+
+            return updateState({
+              ...prev,
+
+              bikeSpeed: 0,
+
+              particles:
+                particles.slice(
+                  -180
+                ),
+
+              floatingTexts:
+                floatingTexts.slice(
+                  -25
+                ),
+
+              shake:
+                Math.max(
+                  0,
+                  prev.shake -
+                    0.8
+                ),
+            });
+          }
+
           const now =
             performance.now();
 
@@ -1163,46 +1240,6 @@ export function useGameEngine() {
                 prev.startTime) /
                 1000
             );
-
-          // ====================================================
-          // GAME OVER
-          // ====================================================
-
-          if (
-            prev.gameOver
-          ) {
-            return updateState({
-              ...prev,
-
-              elapsedTime:
-                elapsed,
-
-              wpm:
-                calculateWPM(
-                  prev.correctKeystrokes,
-                  elapsed
-                ),
-
-              accuracy:
-                calculateAccuracy(
-                  prev.correctKeystrokes,
-                  prev.totalKeystrokes
-                ),
-
-              // Smooth crash slowdown.
-              bikeSpeed:
-                Math.max(
-                  0,
-                  prev.bikeSpeed - 6
-                ),
-
-              shake:
-                Math.max(
-                  0,
-                  prev.shake - 0.8
-                ),
-            });
-          }
 
           // ====================================================
           // PAUSED
@@ -1241,7 +1278,7 @@ export function useGameEngine() {
           }
 
           // ====================================================
-          // SMOOTH VEHICLE SPEED
+          // SPEED
           // ====================================================
 
           const difficultyMultiplier =
@@ -1262,7 +1299,6 @@ export function useGameEngine() {
               )
             );
 
-          // Smooth acceleration/deceleration.
           const acceleration =
             targetSpeed >
             prev.bikeSpeed
@@ -1347,16 +1383,17 @@ export function useGameEngine() {
                   p.life > 0
               );
 
-          // Exhaust while moving.
           if (
             speed > 12
           ) {
             particles.push({
               x:
-                prev.bikeX - 40,
+                prev.bikeX -
+                40,
 
               y:
-                prev.bikeY + 10,
+                prev.bikeY +
+                10,
 
               size:
                 2 +
@@ -1388,10 +1425,12 @@ export function useGameEngine() {
                 ...ft,
 
                 y:
-                  ft.y - 0.8,
+                  ft.y -
+                  0.8,
 
                 life:
-                  ft.life - 0.025,
+                  ft.life -
+                  0.025,
               }))
               .filter(
                 (ft) =>
@@ -1436,15 +1475,14 @@ export function useGameEngine() {
 
             accuracy,
 
-            // Very small vertical suspension.
-            // No random front/back movement.
             bikeY:
               suspension,
 
             shake:
               Math.max(
                 0,
-                prev.shake - 0.8
+                prev.shake -
+                  0.8
               ),
 
             particles:
