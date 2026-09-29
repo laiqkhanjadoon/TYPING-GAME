@@ -301,10 +301,10 @@ export default function App() {
           state.elapsedTime
         ),
 
-      maxSpeed:
-        Math.round(
-          state.bikeSpeed
-        ),
+     maxSpeed:
+  Math.round(
+    state.maxSpeed
+  ),
 
       strongKeys,
 
