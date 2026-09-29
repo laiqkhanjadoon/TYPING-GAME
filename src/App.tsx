@@ -48,7 +48,7 @@ export default function App() {
   // Start actual game when user clicks START RACE
   useEffect(() => {
     if (gameStarted) {
-      startGame();
+      startGame(gameSettings);
     }
   }, [gameStarted, startGame]);
 
