@@ -1,952 +1,1236 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { generateWordQueue } from "./words";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
 import {
   DEFAULT_GAME_SETTINGS,
   DIFFICULTY_SETTINGS,
   type GameSettings,
 } from "./gameTypes";
 
-export type GameState = "start" | "playing" | "paused" | "gameover";
+import {
+  generateWordQueue,
+  getWordForLevel,
+} from "./words";
 
 export interface Particle {
-  id: number;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
-  color: string;
   size: number;
   life: number;
-  maxLife: number;
-  type: "spark" | "smoke" | "star" | "exhaust";
+  color: string;
+  type:
+    | "smoke"
+    | "exhaust"
+    | "star"
+    | "spark";
 }
 
 export interface FloatingText {
-  id: number;
-  text: string;
   x: number;
   y: number;
+  text: string;
   color: string;
   life: number;
 }
 
-export interface TrailPoint {
-  x: number;
-  y: number;
-  opacity: number;
-}
-
 export interface GameEngineState {
-  gameState: GameState;
-  score: number;
-  wpm: number;
-  combo: number;
-  maxCombo: number;
-  level: number;
-  health: number;
-  maxHealth: number;
+  // Game
+  gameStarted: boolean;
+  gameOver: boolean;
+  paused: boolean;
 
-  bikeX: number;
-  bikeY: number;
-  bikeSpeed: number;
-  targetSpeed: number;
-
-  wordQueue: string[];
-  currentWordIndex: number;
-  typedSoFar: string;
-  isError: boolean;
-
-  particles: Particle[];
-  floatingTexts: FloatingText[];
-  trailPoints: TrailPoint[];
-
-  roadOffset: number;
-  bgOffset: number;
-  shake: number;
-
-  wordsCompleted: number;
-  accuracy: number;
-  totalKeystrokes: number;
-  correctKeystrokes: number;
-  timeElapsed: number;
-
-  boostActive: boolean;
-  boostTimer: number;
-
-  // New settings information
+  // Settings
   difficulty: GameSettings["difficulty"];
   typingMode: GameSettings["typingMode"];
   vehicle: GameSettings["vehicle"];
+
+  // Typing
+  currentWord: string;
+  typedText: string;
+  wordQueue: string[];
+  currentWordIndex: number;
+
+  // Paragraph
+  paragraph: string;
+  paragraphProgress: number;
+
+  // Score
+  score: number;
+  combo: number;
+  maxCombo: number;
+  totalKeystrokes: number;
+  correctKeystrokes: number;
+  mistakes: number;
+
+  // Player
+  lives: number;
+  maxLives: number;
+  health: number;
+  maxHealth: number;
+
+  // Racing
+  bikeSpeed: number;
+  roadOffset: number;
+  bgOffset: number;
+  bikeX: number;
+  boostActive: boolean;
+  level: number;
+
+  // Effects
+  shake: number;
+  particles: Particle[];
+  floatingTexts: FloatingText[];
 }
 
-const WORD_QUEUE_SIZE = 8;
+const INITIAL_STATE: GameEngineState = {
+  gameStarted: false,
+  gameOver: false,
+  paused: false,
 
-function createParticle(
+  difficulty: "medium",
+  typingMode: "word",
+  vehicle: "bike",
+
+  currentWord: "",
+  typedText: "",
+  wordQueue: [],
+  currentWordIndex: 0,
+
+  paragraph: "",
+  paragraphProgress: 0,
+
+  score: 0,
+  combo: 0,
+  maxCombo: 0,
+  totalKeystrokes: 0,
+  correctKeystrokes: 0,
+  mistakes: 0,
+
+  lives: 3,
+  maxLives: 3,
+  health: 100,
+  maxHealth: 100,
+
+  bikeSpeed: 0,
+  roadOffset: 0,
+  bgOffset: 0,
+  bikeX: 0,
+  boostActive: false,
+  level: 1,
+
+  shake: 0,
+  particles: [],
+  floatingTexts: [],
+};
+
+function createParagraph(
+  level: number,
+  wordCount: number
+): string {
+  const words: string[] = [];
+
+  for (let i = 0; i < wordCount; i++) {
+    words.push(getWordForLevel(level));
+  }
+
+  return words.join(" ");
+}
+
+function createParticles(
   x: number,
   y: number,
-  type: Particle["type"],
-  idCounter: number
-): Particle {
-  const colors = {
-    spark: ["#FFD700", "#FF6B00", "#FF4500", "#FFA500", "#FFFF00"],
-    smoke: ["#888", "#aaa", "#666", "#999", "#bbb"],
-    star: ["#00FFFF", "#FF00FF", "#FFD700", "#00FF88", "#FF6B6B"],
-    exhaust: ["#555", "#777", "#444", "#666"],
-  };
+  color: string,
+  count: number,
+  type: Particle["type"] = "spark"
+): Particle[] {
+  const particles: Particle[] = [];
 
-  const colorArr = colors[type];
-  const color =
-    colorArr[Math.floor(Math.random() * colorArr.length)];
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x:
+        x +
+        (Math.random() - 0.5) * 30,
 
-  if (type === "spark") {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 5;
+      y:
+        y +
+        (Math.random() - 0.5) * 20,
 
-    return {
-      id: idCounter,
-      x,
-      y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 2,
+      size:
+        1.5 +
+        Math.random() * 4,
+
+      life:
+        0.5 +
+        Math.random() * 0.5,
+
       color,
-      size: 3 + Math.random() * 4,
-      life: 1,
-      maxLife: 1,
+
       type,
-    };
+    });
   }
 
-  if (type === "smoke") {
-    return {
-      id: idCounter,
-      x: x + (Math.random() - 0.5) * 20,
-      y: y + (Math.random() - 0.5) * 10,
-      vx: -1 - Math.random() * 2,
-      vy: -0.5 - Math.random() * 1.5,
-      color,
-      size: 8 + Math.random() * 12,
-      life: 1,
-      maxLife: 1,
-      type,
-    };
-  }
-
-  if (type === "star") {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 3 + Math.random() * 4;
-
-    return {
-      id: idCounter,
-      x,
-      y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 1,
-      color,
-      size: 4 + Math.random() * 6,
-      life: 1,
-      maxLife: 1,
-      type,
-    };
-  }
-
-  return {
-    id: idCounter,
-    x,
-    y,
-    vx: -2 - Math.random() * 3,
-    vy: (Math.random() - 0.5) * 1,
-    color,
-    size: 6 + Math.random() * 8,
-    life: 1,
-    maxLife: 1,
-    type,
-  };
+  return particles;
 }
 
 export function useGameEngine() {
-  const [state, setState] = useState<GameEngineState>(() => ({
-    gameState: "start",
-
-    score: 0,
-    wpm: 0,
-    combo: 0,
-    maxCombo: 0,
-
-    level: 1,
-
-    health: DIFFICULTY_SETTINGS.medium.lives,
-    maxHealth: DIFFICULTY_SETTINGS.medium.lives,
-
-    bikeX: 120,
-    bikeY: 0,
-
-    bikeSpeed: 0,
-    targetSpeed: 0,
-
-    wordQueue: generateWordQueue(WORD_QUEUE_SIZE, 1),
-    currentWordIndex: 0,
-    typedSoFar: "",
-    isError: false,
-
-    particles: [],
-    floatingTexts: [],
-    trailPoints: [],
-
-    roadOffset: 0,
-    bgOffset: 0,
-    shake: 0,
-
-    wordsCompleted: 0,
-    accuracy: 100,
-    totalKeystrokes: 0,
-    correctKeystrokes: 0,
-    timeElapsed: 0,
-
-    boostActive: false,
-    boostTimer: 0,
-
-    difficulty: DEFAULT_GAME_SETTINGS.difficulty,
-    typingMode: DEFAULT_GAME_SETTINGS.typingMode,
-    vehicle: DEFAULT_GAME_SETTINGS.vehicle,
-  }));
-
-  const animFrameRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
-  const particleIdRef = useRef<number>(0);
-  const floatIdRef = useRef<number>(0);
+  const [state, setState] =
+    useState<GameEngineState>(
+      INITIAL_STATE
+    );
 
   const stateRef =
-    useRef<GameEngineState>(state);
+    useRef<GameEngineState>(
+      INITIAL_STATE
+    );
 
-  stateRef.current = state;
+  const updateState = useCallback(
+    (
+      updater:
+        | GameEngineState
+        | ((
+            prev: GameEngineState
+          ) => GameEngineState)
+    ) => {
+      setState((prev) => {
+        const next =
+          typeof updater === "function"
+            ? updater(prev)
+            : updater;
 
-  /*
-   * Start game
-   *
-   * Settings come from StartScreen.
-   */
-  const startGame = useCallback(
-    (settings: GameSettings = DEFAULT_GAME_SETTINGS) => {
-      const difficulty =
-        DIFFICULTY_SETTINGS[settings.difficulty];
+        stateRef.current = next;
 
-      const queue = generateWordQueue(
-        WORD_QUEUE_SIZE,
-        1
-      );
-
-      setState({
-        gameState: "playing",
-
-        score: 0,
-        wpm: 0,
-        combo: 0,
-        maxCombo: 0,
-
-        level: 1,
-
-        health: difficulty.lives,
-        maxHealth: difficulty.lives,
-
-        bikeX: 120,
-        bikeY: 0,
-
-        bikeSpeed: 0,
-        targetSpeed: 0,
-
-        wordQueue: queue,
-        currentWordIndex: 0,
-        typedSoFar: "",
-        isError: false,
-
-        particles: [],
-        floatingTexts: [],
-        trailPoints: [],
-
-        roadOffset: 0,
-        bgOffset: 0,
-        shake: 0,
-
-        wordsCompleted: 0,
-        accuracy: 100,
-        totalKeystrokes: 0,
-        correctKeystrokes: 0,
-        timeElapsed: 0,
-
-        boostActive: false,
-        boostTimer: 0,
-
-        difficulty: settings.difficulty,
-        typingMode: settings.typingMode,
-        vehicle: settings.vehicle,
+        return next;
       });
     },
     []
   );
 
-  const togglePause = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      gameState:
-        prev.gameState === "playing"
-          ? "paused"
-          : prev.gameState === "paused"
-            ? "playing"
-            : prev.gameState,
-    }));
-  }, []);
+  // ============================================================
+  // START GAME
+  // ============================================================
 
-  const handleKeyInput = useCallback(
-    (key: string) => {
-      setState((prev) => {
-        if (prev.gameState !== "playing") {
-          return prev;
-        }
-
-        const currentWord =
-          prev.wordQueue[prev.currentWordIndex];
-
-        if (!currentWord) {
-          return prev;
-        }
-
-        const newParticles = [
-          ...prev.particles,
+  const startGame = useCallback(
+    (
+      settings: GameSettings =
+        DEFAULT_GAME_SETTINGS
+    ) => {
+      const difficulty =
+        DIFFICULTY_SETTINGS[
+          settings.difficulty
         ];
 
-        const newFloatingTexts = [
-          ...prev.floatingTexts,
-        ];
+      const lives =
+        difficulty.lives;
 
-        let newTyped = prev.typedSoFar;
-        let newIsError = prev.isError;
-        let newScore = prev.score;
-        let newCombo = prev.combo;
-        let newMaxCombo = prev.maxCombo;
-        let newHealth = prev.health;
-        let newShake = prev.shake;
+      const level = 1;
 
-        let newWordIndex =
-          prev.currentWordIndex;
+      const queue =
+        generateWordQueue(
+          50,
+          level
+        );
 
-        let newWordQueue = [
-          ...prev.wordQueue,
-        ];
+      const paragraph =
+        createParagraph(
+          level,
+          45
+        );
 
-        let newWordsCompleted =
-          prev.wordsCompleted;
+      const newState: GameEngineState = {
+        ...INITIAL_STATE,
 
-        let newTotalKeystrokes =
-          prev.totalKeystrokes + 1;
+        gameStarted: true,
+        gameOver: false,
+        paused: false,
 
-        let newCorrectKeystrokes =
-          prev.correctKeystrokes;
+        difficulty:
+          settings.difficulty,
 
-        let newBoostActive =
-          prev.boostActive;
+        typingMode:
+          settings.typingMode,
 
-        let newBoostTimer =
-          prev.boostTimer;
+        vehicle:
+          settings.vehicle,
 
-        let newLevel = prev.level;
+        currentWord:
+          settings.typingMode ===
+          "word"
+            ? queue[0]
+            : "",
 
-        let newTargetSpeed =
-          prev.targetSpeed;
+        typedText: "",
 
-        /*
-         * Backspace
-         */
-        if (key === "Backspace") {
-          if (newTyped.length > 0) {
-            newTyped = newTyped.slice(0, -1);
-            newIsError = false;
-          }
+        wordQueue: queue,
 
-          newTotalKeystrokes =
-            prev.totalKeystrokes;
+        currentWordIndex: 0,
 
-          return {
-            ...prev,
-            typedSoFar: newTyped,
-            isError: newIsError,
-          };
-        }
+        paragraph,
 
-        /*
-         * Ignore special keys.
-         */
-        if (key.length !== 1) {
-          return prev;
-        }
+        paragraphProgress: 0,
 
-        const expectedChar =
-          currentWord[newTyped.length];
+        lives,
 
-        /*
-         * Correct character
-         */
-        if (key === expectedChar) {
-          newTyped = prev.typedSoFar + key;
+        maxLives: lives,
 
-          newIsError = false;
+        health: 100,
 
-          newCorrectKeystrokes =
-            prev.correctKeystrokes + 1;
+        maxHealth: 100,
 
-          /*
-           * Completed word
-           */
-          if (newTyped === currentWord) {
-            newWordsCompleted += 1;
+        level,
 
-            newCombo += 1;
+        bikeSpeed:
+          2 *
+          difficulty.speedMultiplier,
 
-            newMaxCombo = Math.max(
-              newMaxCombo,
-              newCombo
-            );
+        roadOffset: 0,
 
-            /*
-             * Level up every 10 words.
-             */
-            newLevel =
-              Math.floor(
-                newWordsCompleted / 10
-              ) + 1;
+        bgOffset: 0,
 
-            /*
-             * Score
-             */
-            const comboMultiplier =
-              1 +
-              Math.floor(newCombo / 3) *
-                0.5;
+        bikeX: 0,
 
-            const lengthBonus =
-              currentWord.length;
+        boostActive: false,
 
-            const levelBonus = newLevel;
-
-            const wordScore = Math.round(
-              (100 *
-                lengthBonus *
-                comboMultiplier *
-                levelBonus) /
-                5
-            );
-
-            newScore += wordScore;
-
-            /*
-             * Boost every 5-combo.
-             */
-            if (
-              newCombo > 0 &&
-              newCombo % 5 === 0
-            ) {
-              newBoostActive = true;
-              newBoostTimer = 180;
-            }
-
-            /*
-             * Difficulty affects maximum speed.
-             */
-            const speedMultiplier =
-              DIFFICULTY_SETTINGS[
-                prev.difficulty
-              ].speedMultiplier;
-
-            newTargetSpeed = Math.min(
-              12 * speedMultiplier,
-              (3 +
-                newCombo * 0.5 +
-                newLevel * 0.3) *
-                speedMultiplier
-            );
-
-            /*
-             * Sparks
-             */
-            const bikeX = prev.bikeX;
-            const bikeY = prev.bikeY;
-
-            for (let i = 0; i < 12; i++) {
-              newParticles.push(
-                createParticle(
-                  bikeX,
-                  bikeY,
-                  "spark",
-                  ++particleIdRef.current
-                )
-              );
-            }
-
-            /*
-             * Combo stars
-             */
-            if (newCombo >= 3) {
-              for (let i = 0; i < 6; i++) {
-                newParticles.push(
-                  createParticle(
-                    bikeX,
-                    bikeY,
-                    "star",
-                    ++particleIdRef.current
-                  )
-                );
-              }
-            }
-
-            /*
-             * Floating score.
-             */
-            const comboText =
-              newCombo > 1
-                ? ` ×${newCombo}`
-                : "";
-
-            newFloatingTexts.push({
-              id: ++floatIdRef.current,
-              text: `+${wordScore}${comboText}`,
-              x: bikeX + 30,
-              y: bikeY - 20,
-              color:
-                newCombo >= 5
-                  ? "#FFD700"
-                  : newCombo >= 3
-                    ? "#00FFFF"
-                    : "#00FF88",
-              life: 1,
-            });
-
-            /*
-             * Move to next word.
-             */
-            newWordIndex =
-              prev.currentWordIndex + 1;
-
-            newTyped = "";
-
-            /*
-             * Refill queue.
-             */
-            if (
-              newWordIndex >=
-              newWordQueue.length - 3
-            ) {
-              const extras =
-                generateWordQueue(
-                  4,
-                  newLevel
-                );
-
-              newWordQueue = [
-                ...newWordQueue,
-                ...extras,
-              ];
-            }
-          }
-        } else {
-          /*
-           * Wrong key
-           */
-          newIsError = true;
-
-          newCombo = 0;
-
-          newTargetSpeed = Math.max(
+        particles:
+          createParticles(
             0,
-            prev.targetSpeed - 1
+            0,
+            "#00ffff",
+            12,
+            "star"
+          ),
+
+        floatingTexts: [],
+      };
+
+      stateRef.current =
+        newState;
+
+      setState(newState);
+    },
+    []
+  );
+
+  // ============================================================
+  // PAUSE
+  // ============================================================
+
+  const togglePause =
+    useCallback(() => {
+      setState((prev) => {
+        if (
+          !prev.gameStarted ||
+          prev.gameOver
+        ) {
+          return prev;
+        }
+
+        const next = {
+          ...prev,
+          paused: !prev.paused,
+        };
+
+        stateRef.current =
+          next;
+
+        return next;
+      });
+    }, []);
+
+  // ============================================================
+  // COMPLETE WORD
+  // ============================================================
+
+  const completeWord = useCallback(
+    (
+      prev: GameEngineState
+    ): GameEngineState => {
+      const nextIndex =
+        prev.currentWordIndex +
+        1;
+
+      const nextWord =
+        prev.wordQueue[
+          nextIndex
+        ] ??
+        getWordForLevel(
+          prev.level
+        );
+
+      const newScore =
+        prev.score +
+        100 +
+        prev.combo * 10;
+
+      const newCombo =
+        prev.combo + 1;
+
+      const newLevel =
+        Math.max(
+          1,
+          Math.floor(
+            newScore / 1000
+          ) + 1
+        );
+
+      const difficulty =
+        DIFFICULTY_SETTINGS[
+          prev.difficulty
+        ];
+
+      const newSpeed =
+        Math.min(
+          14,
+          2 *
+            difficulty.speedMultiplier +
+            newLevel * 0.45
+        );
+
+      const boost =
+        newCombo >= 5;
+
+      const newParticles =
+        createParticles(
+          prev.bikeX,
+          0,
+          boost
+            ? "#ff6600"
+            : "#00ffff",
+          10,
+          boost
+            ? "exhaust"
+            : "spark"
+        );
+
+      const floatingText: FloatingText =
+        {
+          x: prev.bikeX,
+          y: 120,
+          text:
+            newCombo >= 5
+              ? `COMBO x${newCombo}!`
+              : "+100",
+          color:
+            newCombo >= 5
+              ? "#ff6600"
+              : "#00ffff",
+          life: 1,
+        };
+
+      return {
+        ...prev,
+
+        currentWord:
+          nextWord,
+
+        typedText: "",
+
+        currentWordIndex:
+          nextIndex,
+
+        wordQueue:
+          nextIndex >=
+          prev.wordQueue.length - 10
+            ? [
+                ...prev.wordQueue,
+                ...generateWordQueue(
+                  30,
+                  newLevel
+                ),
+              ]
+            : prev.wordQueue,
+
+        score: newScore,
+
+        combo: newCombo,
+
+        maxCombo:
+          Math.max(
+            prev.maxCombo,
+            newCombo
+          ),
+
+        correctKeystrokes:
+          prev.correctKeystrokes +
+          prev.currentWord.length,
+
+        level: newLevel,
+
+        bikeSpeed: newSpeed,
+
+        boostActive: boost,
+
+        health: Math.min(
+          prev.maxHealth,
+          prev.health + 5
+        ),
+
+        roadOffset:
+          prev.roadOffset + 20,
+
+        bgOffset:
+          prev.bgOffset + 8,
+
+        particles: [
+          ...prev.particles,
+          ...newParticles,
+        ].slice(-100),
+
+        floatingTexts: [
+          ...prev.floatingTexts,
+          floatingText,
+        ].slice(-20),
+      };
+    },
+    []
+  );
+
+  // ============================================================
+  // COMPLETE PARAGRAPH
+  // ============================================================
+
+  const completeParagraph =
+    useCallback(
+      (
+        prev: GameEngineState
+      ): GameEngineState => {
+        const newScore =
+          prev.score +
+          1000 +
+          prev.combo * 50;
+
+        const newCombo =
+          prev.combo + 1;
+
+        const newLevel =
+          Math.max(
+            1,
+            Math.floor(
+              newScore / 1000
+            ) + 1
           );
 
-          newShake = 8;
+        const difficulty =
+          DIFFICULTY_SETTINGS[
+            prev.difficulty
+          ];
 
-          /*
-           * Difficulty controls lives.
-           *
-           * Damage only once until
-           * the player starts typing
-           * correctly again.
-           */
-          if (!prev.isError) {
-            newHealth = Math.max(
-              0,
-              prev.health - 1
-            );
-          }
+        const newSpeed =
+          Math.min(
+            14,
+            2 *
+              difficulty.speedMultiplier +
+              newLevel * 0.45
+          );
 
-          /*
-           * Smoke
-           */
-          for (let i = 0; i < 5; i++) {
-            newParticles.push(
-              createParticle(
-                prev.bikeX,
-                prev.bikeY,
-                "smoke",
-                ++particleIdRef.current
-              )
-            );
-          }
-
-          newFloatingTexts.push({
-            id: ++floatIdRef.current,
-            text: "MISS!",
-            x: prev.bikeX + 30,
-            y: prev.bikeY - 10,
-            color: "#FF4444",
-            life: 1,
-          });
-        }
-
-        const newAccuracy =
-          newTotalKeystrokes > 0
-            ? Math.round(
-                (newCorrectKeystrokes /
-                  newTotalKeystrokes) *
-                  100
-              )
-            : 100;
-
-        const gameOver =
-          newHealth <= 0;
+        const newParagraph =
+          createParagraph(
+            newLevel,
+            45
+          );
 
         return {
           ...prev,
 
-          typedSoFar: newTyped,
-          isError: newIsError,
+          paragraph:
+            newParagraph,
+
+          paragraphProgress: 0,
+
+          typedText: "",
 
           score: newScore,
+
           combo: newCombo,
-          maxCombo: newMaxCombo,
 
-          health: newHealth,
-
-          shake: newShake,
-
-          wordQueue: newWordQueue,
-          currentWordIndex:
-            newWordIndex,
-
-          wordsCompleted:
-            newWordsCompleted,
-
-          particles: newParticles,
-          floatingTexts:
-            newFloatingTexts,
-
-          accuracy: newAccuracy,
-
-          totalKeystrokes:
-            newTotalKeystrokes,
-
-          correctKeystrokes:
-            newCorrectKeystrokes,
-
-          boostActive:
-            newBoostActive,
-
-          boostTimer:
-            newBoostTimer,
+          maxCombo:
+            Math.max(
+              prev.maxCombo,
+              newCombo
+            ),
 
           level: newLevel,
 
-          targetSpeed:
-            newTargetSpeed,
-
-          gameState: gameOver
-            ? "gameover"
-            : prev.gameState,
-        };
-      });
-    },
-    []
-  );
-
-  /*
-   * Animation loop
-   */
-  useEffect(() => {
-    if (state.gameState !== "playing") {
-      cancelAnimationFrame(
-        animFrameRef.current
-      );
-      return;
-    }
-
-    const tick = (timestamp: number) => {
-      if (!lastTimeRef.current) {
-        lastTimeRef.current =
-          timestamp;
-      }
-
-      const dt = Math.min(
-        (timestamp -
-          lastTimeRef.current) /
-          16.67,
-        3
-      );
-
-      lastTimeRef.current =
-        timestamp;
-
-      setState((prev) => {
-        if (
-          prev.gameState !== "playing"
-        ) {
-          return prev;
-        }
-
-        /*
-         * Difficulty speed multiplier
-         */
-        const speedMultiplier =
-          DIFFICULTY_SETTINGS[
-            prev.difficulty
-          ].speedMultiplier;
-
-        /*
-         * Physics
-         */
-        const newBikeSpeed =
-          prev.bikeSpeed +
-          (prev.targetSpeed -
-            prev.bikeSpeed) *
-            0.05 *
-            dt;
-
-        const newRoadOffset =
-          (prev.roadOffset +
-            newBikeSpeed *
-              dt *
-              2) %
-          80;
-
-        const newBgOffset =
-          (prev.bgOffset +
-            newBikeSpeed *
-              dt *
-              0.3) %
-          600;
-
-        const newShake = Math.max(
-          0,
-          prev.shake -
-            0.8 * dt
-        );
-
-        const newTimeElapsed =
-          prev.timeElapsed +
-          dt / 60;
-
-        /*
-         * WPM
-         */
-        const newWpm =
-          newTimeElapsed > 0
-            ? Math.round(
-                (prev.wordsCompleted /
-                  newTimeElapsed) *
-                  60
-              )
-            : 0;
-
-        /*
-         * Boost
-         */
-        let newBoostActive =
-          prev.boostActive;
-
-        let newBoostTimer =
-          prev.boostTimer - dt;
-
-        if (newBoostTimer <= 0) {
-          newBoostActive = false;
-          newBoostTimer = 0;
-        }
-
-        /*
-         * Gradually slow down.
-         *
-         * Hard mode slows slightly
-         * less, keeping it more demanding.
-         */
-        const slowDown =
-          0.02 *
-          dt *
-          (prev.difficulty === "hard"
-            ? 0.8
-            : prev.difficulty === "easy"
-              ? 1.2
-              : 1);
-
-        const newTargetSpeed =
-          Math.max(
-            0,
-            prev.targetSpeed -
-              slowDown
-          );
-
-        /*
-         * Prevent speed from exceeding
-         * selected difficulty limit.
-         */
-        const maxSpeed =
-          12 * speedMultiplier;
-
-        const limitedTargetSpeed =
-          Math.min(
-            newTargetSpeed,
-            maxSpeed
-          );
-
-        /*
-         * Particles
-         */
-        const newParticles: Particle[] =
-          [];
-
-        for (const p of prev.particles) {
-          const lifeDecay =
-            p.type === "smoke"
-              ? 0.018
-              : p.type === "exhaust"
-                ? 0.025
-                : 0.03;
-
-          const newLife =
-            p.life -
-            lifeDecay * dt;
-
-          if (newLife <= 0) {
-            continue;
-          }
-
-          newParticles.push({
-            ...p,
-
-            x:
-              p.x +
-              p.vx * dt,
-
-            y:
-              p.y +
-              p.vy * dt,
-
-            vy:
-              p.vy +
-              (p.type === "spark"
-                ? 0.15 * dt
-                : p.type === "smoke"
-                  ? -0.05 * dt
-                  : 0),
-
-            size:
-              p.type === "smoke"
-                ? p.size +
-                  0.3 * dt
-                : p.size,
-
-            life: newLife,
-          });
-        }
-
-        /*
-         * Exhaust particles.
-         */
-        if (
-          newBikeSpeed > 0.5 &&
-          Math.random() < 0.4
-        ) {
-          newParticles.push(
-            createParticle(
-              prev.bikeX - 10,
-              prev.bikeY + 15,
-              "exhaust",
-              ++particleIdRef.current
-            )
-          );
-        }
-
-        /*
-         * Floating texts
-         */
-        const newFloatingTexts: FloatingText[] =
-          [];
-
-        for (const ft of prev.floatingTexts) {
-          const newLife =
-            ft.life -
-            0.025 * dt;
-
-          if (newLife <= 0) {
-            continue;
-          }
-
-          newFloatingTexts.push({
-            ...ft,
-            y:
-              ft.y -
-              0.8 * dt,
-            life: newLife,
-          });
-        }
-
-        return {
-          ...prev,
-
           bikeSpeed:
-            newBikeSpeed,
-
-          roadOffset:
-            newRoadOffset,
-
-          bgOffset:
-            newBgOffset,
-
-          shake:
-            newShake,
-
-          timeElapsed:
-            newTimeElapsed,
-
-          wpm:
-            newWpm,
-
-          particles:
-            newParticles,
-
-          floatingTexts:
-            newFloatingTexts,
-
-          targetSpeed:
-            limitedTargetSpeed,
+            newSpeed,
 
           boostActive:
-            newBoostActive,
+            newCombo >= 3,
 
-          boostTimer:
-            newBoostTimer,
+          health: Math.min(
+            prev.maxHealth,
+            prev.health + 15
+          ),
+
+          roadOffset:
+            prev.roadOffset + 80,
+
+          bgOffset:
+            prev.bgOffset + 30,
+
+          particles: [
+            ...prev.particles,
+            ...createParticles(
+              prev.bikeX,
+              0,
+              "#00ffff",
+              25,
+              "star"
+            ),
+          ].slice(-100),
+
+          floatingTexts: [
+            ...prev.floatingTexts,
+            {
+              x: prev.bikeX,
+              y: 120,
+              text: "PARAGRAPH COMPLETE!",
+              color: "#00ffff",
+              life: 1,
+            },
+          ].slice(-20),
         };
-      });
+      },
+      []
+    );
 
-      animFrameRef.current =
-        requestAnimationFrame(
-          tick
-        );
-    };
+  // ============================================================
+  // HANDLE TYPING
+  // ============================================================
 
-    lastTimeRef.current = 0;
+  const handleKeyInput =
+    useCallback(
+      (key: string) => {
+        setState((prev) => {
+          if (
+            !prev.gameStarted ||
+            prev.gameOver ||
+            prev.paused
+          ) {
+            return prev;
+          }
 
-    animFrameRef.current =
-      requestAnimationFrame(tick);
+          // ----------------------------------------------------
+          // BACKSPACE
+          // ----------------------------------------------------
+
+          if (key === "Backspace") {
+            if (
+              prev.typedText.length ===
+              0
+            ) {
+              return prev;
+            }
+
+            const next = {
+              ...prev,
+
+              typedText:
+                prev.typedText.slice(
+                  0,
+                  -1
+                ),
+
+              totalKeystrokes:
+                prev.totalKeystrokes +
+                1,
+
+              combo: 0,
+
+              boostActive: false,
+            };
+
+            stateRef.current =
+              next;
+
+            return next;
+          }
+
+          // Ignore modifier/special keys
+          if (
+            key.length !== 1 &&
+            key !== " "
+          ) {
+            return prev;
+          }
+
+          // ====================================================
+          // WORD MODE
+          // ====================================================
+
+          if (
+            prev.typingMode ===
+            "word"
+          ) {
+            const expected =
+              prev.currentWord;
+
+            // Space submits word
+            if (key === " ") {
+              if (
+                prev.typedText ===
+                expected
+              ) {
+                const next =
+                  completeWord(
+                    {
+                      ...prev,
+                      totalKeystrokes:
+                        prev.totalKeystrokes +
+                        1,
+                    }
+                  );
+
+                stateRef.current =
+                  next;
+
+                return next;
+              }
+
+              // Wrong space
+              const newHealth =
+                Math.max(
+                  0,
+                  prev.health - 15
+                );
+
+              const newLives =
+                newHealth <= 0
+                  ? prev.lives - 1
+                  : prev.lives;
+
+              const gameOver =
+                newLives <= 0;
+
+              const next = {
+                ...prev,
+
+                totalKeystrokes:
+                  prev.totalKeystrokes +
+                  1,
+
+                mistakes:
+                  prev.mistakes + 1,
+
+                combo: 0,
+
+                boostActive: false,
+
+                health: gameOver
+                  ? 0
+                  : newHealth,
+
+                lives:
+                  gameOver
+                    ? 0
+                    : newLives,
+
+                gameOver,
+              };
+
+              stateRef.current =
+                next;
+
+              return next;
+            }
+
+            // Normal character
+            const expectedChar =
+              expected[
+                prev.typedText
+                  .length
+              ];
+
+            const correct =
+              key ===
+              expectedChar;
+
+            if (correct) {
+              const newTyped =
+                prev.typedText +
+                key;
+
+              const next = {
+                ...prev,
+
+                typedText:
+                  newTyped,
+
+                totalKeystrokes:
+                  prev.totalKeystrokes +
+                  1,
+
+                correctKeystrokes:
+                  prev.correctKeystrokes +
+                  1,
+
+                health: Math.min(
+                  prev.maxHealth,
+                  prev.health + 0.5
+                ),
+
+                bikeSpeed:
+                  Math.min(
+                    14,
+                    prev.bikeSpeed +
+                      0.03
+                  ),
+
+                roadOffset:
+                  prev.roadOffset +
+                  2,
+
+                bgOffset:
+                  prev.bgOffset +
+                  1,
+              };
+
+              stateRef.current =
+                next;
+
+              return next;
+            }
+
+            // Wrong character
+            const newHealth =
+              Math.max(
+                0,
+                prev.health - 8
+              );
+
+            const newLives =
+              newHealth <= 0
+                ? prev.lives - 1
+                : prev.lives;
+
+            const gameOver =
+              newLives <= 0;
+
+            const next = {
+              ...prev,
+
+              typedText:
+                prev.typedText,
+
+              totalKeystrokes:
+                prev.totalKeystrokes +
+                1,
+
+              mistakes:
+                prev.mistakes + 1,
+
+              combo: 0,
+
+              boostActive: false,
+
+              health: gameOver
+                ? 0
+                : newHealth,
+
+              lives:
+                gameOver
+                  ? 0
+                  : newLives,
+
+              shake: 8,
+
+              particles: [
+                ...prev.particles,
+                ...createParticles(
+                  prev.bikeX,
+                  0,
+                  "#ff3333",
+                  6,
+                  "spark"
+                ),
+              ].slice(-100),
+
+              floatingTexts: [
+                ...prev.floatingTexts,
+                {
+                  x: prev.bikeX,
+                  y: 130,
+                  text: "MISS!",
+                  color: "#ff3333",
+                  life: 1,
+                },
+              ].slice(-20),
+
+              gameOver,
+            };
+
+            stateRef.current =
+              next;
+
+            return next;
+          }
+
+          // ====================================================
+          // PARAGRAPH MODE
+          // ====================================================
+
+          const paragraph =
+            prev.paragraph;
+
+          const position =
+            prev.paragraphProgress;
+
+          const expected =
+            paragraph[position];
+
+          // Correct character
+          if (key === expected) {
+            const newProgress =
+              position + 1;
+
+            const completed =
+              newProgress >=
+              paragraph.length;
+
+            if (completed) {
+              const next =
+                completeParagraph(
+                  {
+                    ...prev,
+                    totalKeystrokes:
+                      prev.totalKeystrokes +
+                      1,
+
+                    correctKeystrokes:
+                      prev.correctKeystrokes +
+                      1,
+                  }
+                );
+
+              stateRef.current =
+                next;
+
+              return next;
+            }
+
+            const next = {
+              ...prev,
+
+              typedText:
+                paragraph.slice(
+                  0,
+                  newProgress
+                ),
+
+              paragraphProgress:
+                newProgress,
+
+              totalKeystrokes:
+                prev.totalKeystrokes +
+                1,
+
+              correctKeystrokes:
+                prev.correctKeystrokes +
+                1,
+
+              health: Math.min(
+                prev.maxHealth,
+                prev.health + 0.25
+              ),
+
+              bikeSpeed:
+                Math.min(
+                  14,
+                  prev.bikeSpeed +
+                    0.015
+                ),
+
+              roadOffset:
+                prev.roadOffset +
+                1.5,
+
+              bgOffset:
+                prev.bgOffset +
+                0.7,
+            };
+
+            stateRef.current =
+              next;
+
+            return next;
+          }
+
+          // Wrong paragraph character
+          const newHealth =
+            Math.max(
+              0,
+              prev.health - 5
+            );
+
+          const newLives =
+            newHealth <= 0
+              ? prev.lives - 1
+              : prev.lives;
+
+          const gameOver =
+            newLives <= 0;
+
+          const next = {
+            ...prev,
+
+            totalKeystrokes:
+              prev.totalKeystrokes +
+              1,
+
+            mistakes:
+              prev.mistakes + 1,
+
+            combo: 0,
+
+            boostActive: false,
+
+            health: gameOver
+              ? 0
+              : newHealth,
+
+            lives:
+              gameOver
+                ? 0
+                : newLives,
+
+            shake: 7,
+
+            particles: [
+              ...prev.particles,
+              ...createParticles(
+                prev.bikeX,
+                0,
+                "#ff3333",
+                5,
+                "spark"
+              ),
+            ].slice(-100),
+
+            floatingTexts: [
+              ...prev.floatingTexts,
+              {
+                x: prev.bikeX,
+                y: 130,
+                text: "MISS!",
+                color: "#ff3333",
+                life: 1,
+              },
+            ].slice(-20),
+
+            gameOver,
+          };
+
+          stateRef.current =
+            next;
+
+          return next;
+        });
+      },
+      [
+        completeWord,
+        completeParagraph,
+      ]
+    );
+
+  // ============================================================
+  // GAME ANIMATION / PHYSICS
+  // ============================================================
+
+  useEffect(() => {
+    const interval =
+      window.setInterval(() => {
+        setState((prev) => {
+          if (
+            !prev.gameStarted ||
+            prev.gameOver ||
+            prev.paused
+          ) {
+            return prev;
+          }
+
+          const difficulty =
+            DIFFICULTY_SETTINGS[
+              prev.difficulty
+            ];
+
+          const baseSpeed =
+            2 *
+            difficulty.speedMultiplier;
+
+          // Gradually increase speed
+          const targetSpeed =
+            Math.min(
+              14,
+              baseSpeed +
+                prev.level * 0.45
+            );
+
+          const nextSpeed =
+            prev.boostActive
+              ? Math.min(
+                  16,
+                  prev.bikeSpeed +
+                    0.12
+                )
+              : Math.max(
+                  baseSpeed,
+                  prev.bikeSpeed -
+                    0.025
+                );
+
+          const nextParticles =
+            prev.particles
+              .map((p) => ({
+                ...p,
+
+                x:
+                  p.x +
+                  (Math.random() -
+                    0.5) *
+                    2,
+
+                y:
+                  p.y +
+                  (Math.random() -
+                    0.5) *
+                    2,
+
+                life:
+                  p.life -
+                  0.025,
+
+                size:
+                  p.size *
+                  1.01,
+              }))
+              .filter(
+                (p) =>
+                  p.life > 0
+              );
+
+          // Add exhaust while moving
+          if (
+            nextSpeed > 2
+          ) {
+            nextParticles.push({
+              x:
+                prev.bikeX - 35,
+
+              y:
+                0 +
+                (Math.random() -
+                  0.5) *
+                  20,
+
+              size:
+                2 +
+                Math.random() * 4,
+
+              life:
+                0.5 +
+                Math.random() *
+                  0.4,
+
+              color:
+                prev.boostActive
+                  ? "#ff6600"
+                  : "#00ccff",
+
+              type:
+                prev.boostActive
+                  ? "exhaust"
+                  : "smoke",
+            });
+          }
+
+          const nextFloatingTexts =
+            prev.floatingTexts
+              .map((ft) => ({
+                ...ft,
+
+                y:
+                  ft.y - 0.7,
+
+                life:
+                  ft.life -
+                  0.025,
+              }))
+              .filter(
+                (ft) =>
+                  ft.life > 0
+              );
+
+          const nextShake =
+            Math.max(
+              0,
+              prev.shake - 0.6
+            );
+
+          const nextRoadOffset =
+            prev.roadOffset +
+            nextSpeed;
+
+          const nextBgOffset =
+            prev.bgOffset +
+            nextSpeed *
+              0.25;
+
+          const nextBikeX =
+            prev.bikeX === 0
+              ? 0
+              : prev.bikeX;
+
+          const next = {
+            ...prev,
+
+            bikeSpeed:
+              Math.min(
+                targetSpeed,
+                nextSpeed
+              ),
+
+            roadOffset:
+              nextRoadOffset,
+
+            bgOffset:
+              nextBgOffset,
+
+            bikeX:
+              nextBikeX,
+
+            shake:
+              nextShake,
+
+            particles:
+              nextParticles.slice(
+                -120
+              ),
+
+            floatingTexts:
+              nextFloatingTexts.slice(
+                -25
+              ),
+          };
+
+          stateRef.current =
+            next;
+
+          return next;
+        });
+      }, 50);
 
     return () =>
-      cancelAnimationFrame(
-        animFrameRef.current
+      window.clearInterval(
+        interval
       );
-  }, [state.gameState]);
+  }, []);
+
+  // ============================================================
+  // RETURN
+  // ============================================================
 
   return {
     state,
