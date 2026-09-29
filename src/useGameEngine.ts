@@ -37,6 +37,11 @@ export interface FloatingText {
   life: number;
 }
 
+export interface KeyStat {
+  correct: number;
+  wrong: number;
+}
+
 export interface GameEngineState {
   gameStarted: boolean;
   gameOver: boolean;
@@ -77,11 +82,15 @@ export interface GameEngineState {
 
   boostActive: boolean;
   level: number;
-
   shake: number;
 
   particles: Particle[];
   floatingTexts: FloatingText[];
+
+  startTime: number;
+  elapsedTime: number;
+
+  keyStats: Record<string, KeyStat>;
 }
 
 const INITIAL_STATE: GameEngineState = {
@@ -124,21 +133,27 @@ const INITIAL_STATE: GameEngineState = {
 
   boostActive: false,
   level: 1,
-
   shake: 0,
 
   particles: [],
   floatingTexts: [],
+
+  startTime: 0,
+  elapsedTime: 0,
+
+  keyStats: {},
 };
 
 function createParagraph(
   level: number,
-  wordCount: number
-): string {
+  count: number
+) {
   const words: string[] = [];
 
-  for (let i = 0; i < wordCount; i++) {
-    words.push(getWordForLevel(level));
+  for (let i = 0; i < count; i++) {
+    words.push(
+      getWordForLevel(level)
+    );
   }
 
   return words.join(" ");
@@ -150,22 +165,22 @@ function createParticles(
   color: string,
   count: number,
   type: Particle["type"]
-): Particle[] {
+) {
   const particles: Particle[] = [];
 
   for (let i = 0; i < count; i++) {
     particles.push({
       x:
         x +
-        (Math.random() - 0.5) * 30,
+        (Math.random() - 0.5) * 35,
 
       y:
         y +
         (Math.random() - 0.5) * 20,
 
       size:
-        1.5 +
-        Math.random() * 4,
+        2 +
+        Math.random() * 5,
 
       life:
         0.5 +
@@ -190,7 +205,10 @@ export function useGameEngine() {
       INITIAL_STATE
     );
 
-  const updateRef = (
+  const lastTypingTimeRef =
+    useRef(0);
+
+  const updateState = (
     next: GameEngineState
   ) => {
     stateRef.current = next;
@@ -198,7 +216,7 @@ export function useGameEngine() {
   };
 
   // ============================================================
-  // START
+  // START GAME
   // ============================================================
 
   const startGame = useCallback(
@@ -211,20 +229,20 @@ export function useGameEngine() {
           settings.difficulty
         ];
 
-      const lives =
-        difficulty.lives;
-
       const queue =
         generateWordQueue(
-          60,
+          80,
           1
         );
 
       const paragraph =
         createParagraph(
           1,
-          45
+          50
         );
+
+      const now =
+        performance.now();
 
       const newState: GameEngineState = {
         ...INITIAL_STATE,
@@ -255,16 +273,16 @@ export function useGameEngine() {
 
         paragraphProgress: 0,
 
-        lives,
+        lives:
+          difficulty.lives,
 
-        maxLives: lives,
+        maxLives:
+          difficulty.lives,
 
         health: 100,
         maxHealth: 100,
 
-        bikeSpeed:
-          3 *
-          difficulty.speedMultiplier,
+        bikeSpeed: 0,
 
         roadOffset: 0,
         bgOffset: 0,
@@ -273,17 +291,23 @@ export function useGameEngine() {
         bikeY: 0,
 
         boostActive: false,
-
         level: 1,
-
         shake: 0,
 
         particles: [],
         floatingTexts: [],
+
+        startTime: now,
+        elapsedTime: 0,
+
+        keyStats: {},
       };
 
       stateRef.current =
         newState;
+
+      lastTypingTimeRef.current =
+        now;
 
       setState(newState);
     },
@@ -304,7 +328,7 @@ export function useGameEngine() {
           return prev;
         }
 
-        return updateRef({
+        return updateState({
           ...prev,
           paused: !prev.paused,
         });
@@ -317,7 +341,7 @@ export function useGameEngine() {
 
   const nextWord = (
     prev: GameEngineState
-  ): GameEngineState => {
+  ) => {
     const nextIndex =
       prev.currentWordIndex + 1;
 
@@ -337,50 +361,32 @@ export function useGameEngine() {
       ];
     }
 
-    const nextWordValue =
+    const next =
       queue[nextIndex] ??
       getWordForLevel(
         prev.level
       );
 
-    const newCombo =
+    const combo =
       prev.combo + 1;
 
-    const newScore =
+    const score =
       prev.score +
       100 +
-      newCombo * 10;
+      combo * 10;
 
-    const newLevel =
+    const level =
       Math.max(
         1,
         Math.floor(
-          newScore / 1000
+          score / 1000
         ) + 1
       );
-
-    const difficulty =
-      DIFFICULTY_SETTINGS[
-        prev.difficulty
-      ];
-
-    const speed =
-      Math.min(
-        16,
-        3 *
-          difficulty.speedMultiplier +
-          newLevel * 0.35
-      );
-
-    const boost =
-      newCombo >= 3;
 
     return {
       ...prev,
 
-      currentWord:
-        nextWordValue,
-
+      currentWord: next,
       typedText: "",
 
       currentWordIndex:
@@ -388,59 +394,54 @@ export function useGameEngine() {
 
       wordQueue: queue,
 
-      score: newScore,
+      score,
 
-      combo: newCombo,
+      combo,
 
       maxCombo:
         Math.max(
           prev.maxCombo,
-          newCombo
+          combo
         ),
 
-      level: newLevel,
+      level,
 
-      bikeSpeed: speed,
+      boostActive:
+        combo >= 3,
 
-      boostActive: boost,
-
-      health: Math.min(
-        100,
-        prev.health + 3
-      ),
-
-      roadOffset:
-        prev.roadOffset + 15,
-
-      bgOffset:
-        prev.bgOffset + 5,
+      health:
+        Math.min(
+          100,
+          prev.health + 2
+        ),
 
       particles: [
         ...prev.particles,
         ...createParticles(
           prev.bikeX,
           prev.bikeY,
-          boost
+          combo >= 3
             ? "#ff6600"
             : "#00ffff",
-          boost ? 12 : 5,
-          boost
+          combo >= 3 ? 12 : 5,
+          combo >= 3
             ? "exhaust"
             : "spark"
         ),
-      ].slice(-120),
+      ].slice(-150),
 
       floatingTexts: [
         ...prev.floatingTexts,
         {
           x: prev.bikeX,
-          y: prev.bikeY - 50,
+          y:
+            prev.bikeY - 50,
           text:
-            boost
-              ? `BOOST x${newCombo}`
+            combo >= 3
+              ? `BOOST x${combo}`
               : "+100",
           color:
-            boost
+            combo >= 3
               ? "#ff6600"
               : "#00ffff",
           life: 1,
@@ -455,65 +456,51 @@ export function useGameEngine() {
 
   const completeParagraph = (
     prev: GameEngineState
-  ): GameEngineState => {
-    const newCombo =
+  ) => {
+    const combo =
       prev.combo + 1;
 
-    const newScore =
+    const score =
       prev.score +
       1000 +
-      newCombo * 50;
+      combo * 50;
 
-    const newLevel =
+    const level =
       Math.max(
         1,
         Math.floor(
-          newScore / 1000
+          score / 1000
         ) + 1
-      );
-
-    const paragraph =
-      createParagraph(
-        newLevel,
-        45
       );
 
     return {
       ...prev,
 
-      paragraph,
+      paragraph:
+        createParagraph(
+          level,
+          50
+        ),
 
       paragraphProgress: 0,
 
       typedText: "",
 
-      score: newScore,
+      score,
 
-      combo: newCombo,
+      combo,
 
       maxCombo:
         Math.max(
           prev.maxCombo,
-          newCombo
+          combo
         ),
 
-      level: newLevel,
-
-      bikeSpeed:
-        Math.min(
-          16,
-          prev.bikeSpeed + 1
-        ),
+      level,
 
       boostActive: true,
 
       health: 100,
-
-      roadOffset:
-        prev.roadOffset + 80,
-
-      bgOffset:
-        prev.bgOffset + 30,
 
       particles: [
         ...prev.particles,
@@ -521,17 +508,19 @@ export function useGameEngine() {
           prev.bikeX,
           prev.bikeY,
           "#00ffff",
-          25,
+          30,
           "star"
         ),
-      ].slice(-120),
+      ].slice(-150),
 
       floatingTexts: [
         ...prev.floatingTexts,
         {
           x: prev.bikeX,
-          y: prev.bikeY - 50,
-          text: "PARAGRAPH COMPLETE!",
+          y:
+            prev.bikeY - 50,
+          text:
+            "PARAGRAPH COMPLETE!",
           color: "#00ffff",
           life: 1,
         },
@@ -555,83 +544,79 @@ export function useGameEngine() {
             return prev;
           }
 
-          // BACKSPACE
           if (
             key === "Backspace"
           ) {
-            if (
-              prev.typedText
-                .length === 0
-            ) {
-              return prev;
-            }
-
-            return updateRef({
+            return updateState({
               ...prev,
-
               typedText:
                 prev.typedText.slice(
                   0,
                   -1
                 ),
-
-              totalKeystrokes:
-                prev.totalKeystrokes +
-                1,
-
-              combo: 0,
-
-              boostActive: false,
             });
           }
 
-          // Ignore special keys
           if (
             key.length !== 1
           ) {
             return prev;
           }
 
-          // ====================================================
+          const now =
+            performance.now();
+
+          lastTypingTimeRef.current =
+            now;
+
+          const keyName =
+            key.toLowerCase();
+
+          const oldKeyStat =
+            prev.keyStats[
+              keyName
+            ] ?? {
+              correct: 0,
+              wrong: 0,
+            };
+
+          // ========================================================
           // WORD MODE
-          // ====================================================
+          // ========================================================
 
           if (
             prev.typingMode ===
             "word"
           ) {
             const expected =
-              prev.currentWord;
+              prev.currentWord[
+                prev.typedText
+                  .length
+              ];
 
-            const position =
-              prev.typedText
-                .length;
-
-            const expectedChar =
-              expected[position];
-
-            // Wrong character
+            // WRONG KEY
             if (
-              key !==
-              expectedChar
+              key !== expected
             ) {
-              const health =
+              const newHealth =
                 Math.max(
                   0,
-                  prev.health -
-                    8
+                  prev.health - 15
                 );
 
-              const lives =
-                health <= 0
-                  ? prev.lives -
-                    1
+              const newLives =
+                newHealth <= 0
+                  ? Math.max(
+                      0,
+                      prev.lives - 1
+                    )
                   : prev.lives;
 
-              const gameOver =
-                lives <= 0;
+              const crashed =
+                newHealth <= 0 ||
+                newLives <= 0;
 
-              return updateRef({
+              return updateState({
                 ...prev,
 
                 totalKeystrokes:
@@ -644,159 +629,173 @@ export function useGameEngine() {
 
                 combo: 0,
 
-                boostActive:
-                  false,
+                boostActive: false,
 
                 health:
-                  gameOver
+                  crashed
                     ? 0
-                    : health,
+                    : newHealth,
 
                 lives:
-                  gameOver
+                  crashed
                     ? 0
-                    : lives,
+                    : newLives,
 
-                shake: 8,
+                gameOver:
+                  crashed,
 
-                gameOver,
+                shake: 14,
+
+                bikeSpeed:
+                  Math.max(
+                    0,
+                    prev.bikeSpeed -
+                      35
+                  ),
+
+                keyStats: {
+                  ...prev.keyStats,
+
+                  [keyName]: {
+                    correct:
+                      oldKeyStat.correct,
+                    wrong:
+                      oldKeyStat.wrong +
+                      1,
+                  },
+                },
 
                 particles: [
                   ...prev.particles,
                   ...createParticles(
                     prev.bikeX,
                     prev.bikeY,
-                    "#ff3333",
-                    8,
-                    "spark"
+                    "#ff2222",
+                    crashed
+                      ? 35
+                      : 10,
+                    crashed
+                      ? "smoke"
+                      : "spark"
                   ),
-                ].slice(-120),
+                ].slice(-180),
 
                 floatingTexts: [
                   ...prev.floatingTexts,
                   {
-                    x: prev.bikeX,
+                    x:
+                      prev.bikeX,
                     y:
                       prev.bikeY -
-                      50,
-                    text: "MISS!",
+                      55,
+                    text:
+                      crashed
+                        ? "CRASH!"
+                        : "WRONG!",
                     color:
-                      "#ff3333",
+                      "#ff2222",
                     life: 1,
                   },
                 ].slice(-20),
               });
             }
 
-            // Correct character
-            const newTyped =
+            // CORRECT KEY
+            const typed =
               prev.typedText +
               key;
 
-            const newCorrect =
-              prev.correctKeystrokes +
-              1;
+            const stat =
+              {
+                correct:
+                  oldKeyStat.correct +
+                  1,
+                wrong:
+                  oldKeyStat.wrong,
+              };
 
-            const newTotal =
-              prev.totalKeystrokes +
-              1;
-
-            // ==================================================
-            // IMPORTANT:
-            // LAST LETTER AUTO COMPLETES WORD
-            // NO SPACE REQUIRED
-            // ==================================================
-
-            if (
-              newTyped.length >=
-              expected.length
-            ) {
-              return updateRef({
-                ...nextWord({
-                  ...prev,
-
-                  typedText:
-                    newTyped,
-
-                  correctKeystrokes:
-                    newCorrect,
-
-                  totalKeystrokes:
-                    newTotal,
-                }),
-              });
-            }
-
-            return updateRef({
+            const nextState = {
               ...prev,
 
               typedText:
-                newTyped,
-
-              correctKeystrokes:
-                newCorrect,
+                typed,
 
               totalKeystrokes:
-                newTotal,
+                prev.totalKeystrokes +
+                1,
 
+              correctKeystrokes:
+                prev.correctKeystrokes +
+                1,
+
+              keyStats: {
+                ...prev.keyStats,
+
+                [keyName]: stat,
+              },
+
+              // EACH CORRECT KEY = MORE SPEED
               bikeSpeed:
                 Math.min(
-                  16,
+                  240,
                   prev.bikeSpeed +
-                    0.03
+                    8
                 ),
 
               roadOffset:
                 prev.roadOffset +
-                2,
+                8,
 
               bgOffset:
                 prev.bgOffset +
-                1,
+                2,
 
               health:
                 Math.min(
                   100,
-                  prev.health +
-                    0.2
+                  prev.health + 0.5
                 ),
-            });
+            };
+
+            // LAST LETTER = NEXT WORD
+            if (
+              typed.length >=
+              prev.currentWord.length
+            ) {
+              return updateState(
+                nextWord(
+                  nextState
+                )
+              );
+            }
+
+            return updateState(
+              nextState
+            );
           }
 
-          // ====================================================
+          // ========================================================
           // PARAGRAPH MODE
-          // ====================================================
-
-          const paragraph =
-            prev.paragraph;
-
-          const position =
-            prev.paragraphProgress;
+          // ========================================================
 
           const expected =
-            paragraph[position];
+            prev.paragraph[
+              prev.paragraphProgress
+            ];
 
-          // Wrong
           if (
             key !== expected
           ) {
-            const health =
+            const newHealth =
               Math.max(
                 0,
-                prev.health -
-                  5
+                prev.health - 12
               );
 
-            const lives =
-              health <= 0
-                ? prev.lives -
-                  1
-                : prev.lives;
+            const crashed =
+              newHealth <= 0;
 
-            const gameOver =
-              lives <= 0;
-
-            return updateRef({
+            return updateState({
               ...prev,
 
               totalKeystrokes:
@@ -809,71 +808,73 @@ export function useGameEngine() {
 
               combo: 0,
 
-              boostActive:
-                false,
+              boostActive: false,
 
               health:
-                gameOver
+                crashed
                   ? 0
-                  : health,
+                  : newHealth,
 
-              lives:
-                gameOver
-                  ? 0
-                  : lives,
+              gameOver:
+                crashed,
 
-              shake: 7,
+              shake: 14,
 
-              gameOver,
+              bikeSpeed:
+                Math.max(
+                  0,
+                  prev.bikeSpeed -
+                    30
+                ),
+
+              keyStats: {
+                ...prev.keyStats,
+
+                [keyName]: {
+                  correct:
+                    oldKeyStat.correct,
+                  wrong:
+                    oldKeyStat.wrong +
+                    1,
+                },
+              },
 
               particles: [
                 ...prev.particles,
                 ...createParticles(
                   prev.bikeX,
                   prev.bikeY,
-                  "#ff3333",
-                  6,
-                  "spark"
+                  "#ff2222",
+                  crashed
+                    ? 35
+                    : 8,
+                  crashed
+                    ? "smoke"
+                    : "spark"
                 ),
-              ].slice(-120),
+              ].slice(-180),
             });
           }
 
-          // Correct
-          const newProgress =
-            position + 1;
+          const progress =
+            prev.paragraphProgress +
+            1;
 
-          const complete =
-            newProgress >=
-            paragraph.length;
+          const completed =
+            progress >=
+            prev.paragraph.length;
 
-          if (complete) {
-            return updateRef(
-              completeParagraph({
-                ...prev,
-
-                totalKeystrokes:
-                  prev.totalKeystrokes +
-                  1,
-
-                correctKeystrokes:
-                  prev.correctKeystrokes +
-                  1,
-              })
-            );
-          }
-
-          return updateRef({
+          const nextState = {
             ...prev,
 
-            typedText:
-              paragraph.slice(
-                0,
-                newProgress
-              ),
-
             paragraphProgress:
-              newProgress,
+              progress,
+
+            typedText:
+              prev.paragraph.slice(
+                0,
+                progress
+              ),
 
             totalKeystrokes:
               prev.totalKeystrokes +
@@ -883,35 +884,54 @@ export function useGameEngine() {
               prev.correctKeystrokes +
               1,
 
+            keyStats: {
+              ...prev.keyStats,
+
+              [keyName]: {
+                correct:
+                  oldKeyStat.correct +
+                  1,
+                wrong:
+                  oldKeyStat.wrong,
+              },
+            },
+
             bikeSpeed:
               Math.min(
-                16,
+                240,
                 prev.bikeSpeed +
-                  0.015
+                  5
               ),
 
             roadOffset:
               prev.roadOffset +
-              1.5,
+              5,
 
             bgOffset:
               prev.bgOffset +
-              0.7,
+              1,
+          };
 
-            health:
-              Math.min(
-                100,
-                prev.health +
-                  0.15
-              ),
-          });
+          if (
+            completed
+          ) {
+            return updateState(
+              completeParagraph(
+                nextState
+              )
+            );
+          }
+
+          return updateState(
+            nextState
+          );
         });
       },
       []
     );
 
   // ============================================================
-  // ANIMATION ENGINE
+  // ANIMATION / PHYSICS
   // ============================================================
 
   useEffect(() => {
@@ -919,65 +939,96 @@ export function useGameEngine() {
       window.setInterval(() => {
         setState((prev) => {
           if (
-            !prev.gameStarted ||
-            prev.gameOver ||
+            !prev.gameStarted
+          ) {
+            return prev;
+          }
+
+          const now =
+            performance.now();
+
+          const elapsed =
+            Math.max(
+              0,
+              (now -
+                prev.startTime) /
+                1000
+            );
+
+          if (
+            prev.gameOver
+          ) {
+            return updateState({
+              ...prev,
+
+              elapsedTime:
+                elapsed,
+
+              // Vehicle slows after crash
+              bikeSpeed:
+                Math.max(
+                  0,
+                  prev.bikeSpeed -
+                    4
+                ),
+
+              shake:
+                Math.max(
+                  0,
+                  prev.shake -
+                    0.5
+                ),
+            });
+          }
+
+          if (
             prev.paused
           ) {
             return prev;
           }
 
-          // Smooth speed
-          const target =
-            3 +
-            prev.level *
-              0.35;
+          // ------------------------------------------------------
+          // SPEED DECAY
+          // Vehicle keeps moving only while typing continues.
+          // ------------------------------------------------------
 
-          const speed =
-            prev.bikeSpeed <
-            target
-              ? Math.min(
-                  target,
-                  prev.bikeSpeed +
-                    0.08
-                )
-              : Math.max(
-                  target,
-                  prev.bikeSpeed -
-                    0.03
-                );
+          const idleTime =
+            now -
+            lastTypingTimeRef.current;
 
-          // Horizontal vehicle movement
-          const newBikeX =
-            prev.bikeX +
-            speed * 1.2;
+          let speed =
+            prev.bikeSpeed;
 
-          // Keep vehicle moving across track
-          const wrappedX =
-            newBikeX > 900
-              ? -150
-              : newBikeX;
-
-          // Vehicle vertical bounce
-          const newBikeY =
-            Math.sin(
-              performance.now() *
-                0.008
-            ) *
-              Math.min(
-                speed * 0.8,
-                8
+          if (
+            idleTime > 500
+          ) {
+            speed =
+              Math.max(
+                0,
+                speed - 3.5
               );
+          }
 
-          // Road animation
-          const roadOffset =
+          if (
+            idleTime > 1500
+          ) {
+            speed =
+              Math.max(
+                0,
+                speed - 5
+              );
+          }
+
+          // Road movement based directly on speed
+          const road =
             prev.roadOffset +
-            speed * 2;
+            speed * 0.08;
 
-          const bgOffset =
+          const background =
             prev.bgOffset +
-            speed * 0.35;
+            speed * 0.015;
 
-          // Particles
+          // Exhaust particles
           const particles =
             prev.particles
               .map((p) => ({
@@ -985,45 +1036,41 @@ export function useGameEngine() {
 
                 x:
                   p.x -
-                  speed *
-                  0.5,
-
-                y:
-                  p.y +
-                  (Math.random() -
-                    0.5),
+                  Math.max(
+                    1,
+                    speed *
+                      0.015
+                  ),
 
                 life:
                   p.life -
                   0.025,
-
-                size:
-                  p.size * 1.01,
               }))
               .filter(
                 (p) =>
                   p.life > 0
               );
 
-          // Exhaust
-          if (speed > 2) {
+          // Add exhaust according to speed
+          if (
+            speed > 10
+          ) {
             particles.push({
               x:
-                wrappedX -
-                45,
+                prev.bikeX - 40,
 
               y:
-                newBikeY +
-                20,
+                prev.bikeY + 10,
 
               size:
                 2 +
-                Math.random() * 4,
+                Math.random() *
+                  4,
 
               life:
-                0.45 +
+                0.4 +
                 Math.random() *
-                  0.35,
+                  0.4,
 
               color:
                 prev.boostActive
@@ -1037,7 +1084,6 @@ export function useGameEngine() {
             });
           }
 
-          // Floating text
           const floatingTexts =
             prev.floatingTexts
               .map((ft) => ({
@@ -1047,49 +1093,49 @@ export function useGameEngine() {
                   ft.y - 0.8,
 
                 life:
-                  ft.life -
-                  0.025,
+                  ft.life - 0.025,
               }))
               .filter(
                 (ft) =>
                   ft.life > 0
               );
 
-          // Shake recovery
-          const shake =
-            Math.max(
-              0,
-              prev.shake - 0.7
-            );
-
-          // Slowly reduce boost
-          const boostActive =
-            prev.boostActive &&
-            Math.random() > 0.035;
-
-          return updateRef({
+          return updateState({
             ...prev,
 
             bikeSpeed:
               speed,
 
-            bikeX:
-              wrappedX,
+            roadOffset:
+              road,
 
+            bgOffset:
+              background,
+
+            elapsedTime:
+              elapsed,
+
+            // Tiny suspension movement.
+            // NOT front/back movement.
             bikeY:
-              newBikeY,
+              Math.sin(
+                now * 0.012
+              ) *
+              Math.min(
+                2,
+                speed / 100
+              ),
 
-            roadOffset,
-
-            bgOffset,
-
-            shake,
-
-            boostActive,
+            shake:
+              Math.max(
+                0,
+                prev.shake -
+                  0.8
+              ),
 
             particles:
               particles.slice(
-                -150
+                -180
               ),
 
             floatingTexts:
