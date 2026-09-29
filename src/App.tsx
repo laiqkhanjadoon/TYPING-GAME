@@ -19,6 +19,26 @@ import {
   type GameSettings,
 } from "./gameTypes";
 
+interface FinalStats {
+  score: number;
+  wpm: number;
+  cpm: number;
+  accuracy: number;
+  maxCombo: number;
+  mistakes: number;
+  keystrokes: number;
+  time: number;
+  maxSpeed: number;
+  strongKeys: {
+    key: string;
+    accuracy: number;
+  }[];
+  weakKeys: {
+    key: string;
+    accuracy: number;
+  }[];
+}
+
 export default function App() {
   const [
     gameSettings,
@@ -43,6 +63,14 @@ export default function App() {
     );
 
   const [
+    finalStats,
+    setFinalStats,
+  ] =
+    useState<FinalStats | null>(
+      null
+    );
+
+  const [
     dimensions,
     setDimensions,
   ] =
@@ -60,10 +88,6 @@ export default function App() {
     handleKeyInput,
   } =
     useGameEngine();
-
-  // ==========================================================
-  // RESIZE
-  // ==========================================================
 
   useEffect(() => {
     const resize = () => {
@@ -87,10 +111,6 @@ export default function App() {
       );
   }, []);
 
-  // ==========================================================
-  // START
-  // ==========================================================
-
   useEffect(() => {
     if (
       gameStarted
@@ -103,10 +123,6 @@ export default function App() {
     gameStarted,
     startGame,
   ]);
-
-  // ==========================================================
-  // KEYBOARD
-  // ==========================================================
 
   useEffect(() => {
     if (
@@ -147,9 +163,157 @@ export default function App() {
     togglePause,
   ]);
 
-  // ==========================================================
-  // START BUTTON
-  // ==========================================================
+  /*
+   * Freeze final statistics exactly when
+   * the game changes into game-over state.
+   */
+  useEffect(() => {
+    if (
+      !gameStarted ||
+      !state.gameOver
+    ) {
+      return;
+    }
+
+    const minutes =
+      Math.max(
+        state.elapsedTime /
+          60,
+        1 / 60
+      );
+
+    const wpm =
+      Math.round(
+        state.correctKeystrokes /
+          5 /
+          minutes
+      );
+
+    const cpm =
+      Math.round(
+        state.correctKeystrokes /
+          minutes
+      );
+
+    const accuracy =
+      state.totalKeystrokes >
+      0
+        ? Math.round(
+            (state.correctKeystrokes /
+              state.totalKeystrokes) *
+              100
+          )
+        : 0;
+
+    const keyEntries =
+      Object.entries(
+        state.keyStats
+      )
+        .map(
+          ([
+            key,
+            stats,
+          ]) => {
+            const total =
+              stats.correct +
+              stats.wrong;
+
+            const keyAccuracy =
+              total > 0
+                ? Math.round(
+                    (stats.correct /
+                      total) *
+                      100
+                  )
+                : 0;
+
+            return {
+              key,
+              ...stats,
+              total,
+              accuracy:
+                keyAccuracy,
+            };
+          }
+        );
+
+    const strongKeys =
+      [...keyEntries]
+        .sort(
+          (a, b) =>
+            b.accuracy -
+            a.accuracy
+        )
+        .filter(
+          (x) =>
+            x.total >= 2
+        )
+        .slice(0, 5)
+        .map(
+          (x) => ({
+            key: x.key,
+            accuracy:
+              x.accuracy,
+          })
+        );
+
+    const weakKeys =
+      [...keyEntries]
+        .sort(
+          (a, b) =>
+            a.accuracy -
+            b.accuracy
+        )
+        .filter(
+          (x) =>
+            x.total >= 1
+        )
+        .slice(0, 5)
+        .map(
+          (x) => ({
+            key: x.key,
+            accuracy:
+              x.accuracy,
+          })
+        );
+
+    setFinalStats({
+      score:
+        state.score,
+
+      wpm,
+
+      cpm,
+
+      accuracy,
+
+      maxCombo:
+        state.maxCombo,
+
+      mistakes:
+        state.mistakes,
+
+      keystrokes:
+        state.totalKeystrokes,
+
+      time:
+        Math.round(
+          state.elapsedTime
+        ),
+
+      maxSpeed:
+        Math.round(
+          state.bikeSpeed
+        ),
+
+      strongKeys,
+
+      weakKeys,
+    });
+  }, [
+    gameStarted,
+    state.gameOver,
+  ]);
 
   const handleStart = (
     settings: GameSettings
@@ -158,39 +322,44 @@ export default function App() {
       settings
     );
 
+    setFinalStats(
+      null
+    );
+
     setGameStarted(
       true
     );
   };
 
-  // ==========================================================
-  // MENU
-  // ==========================================================
-
   const handleMenu = () => {
     setGameStarted(
       false
     );
+
+    setFinalStats(
+      null
+    );
   };
 
-  // ==========================================================
-  // SCORE CALCULATIONS
-  // ==========================================================
-
-  const minutes =
+  /*
+   * Live HUD statistics.
+   * These are only used while racing.
+   */
+  const liveMinutes =
     Math.max(
       state.elapsedTime /
         60,
       1 / 60
     );
 
-  const wpm = Math.round(
-    state.correctKeystrokes /
-      5 /
-      minutes
-  );
+  const liveWpm =
+    Math.round(
+      state.correctKeystrokes /
+        5 /
+        liveMinutes
+    );
 
-  const accuracy =
+  const liveAccuracy =
     state.totalKeystrokes >
     0
       ? Math.round(
@@ -199,76 +368,6 @@ export default function App() {
             100
         )
       : 100;
-
-  const cpm = Math.round(
-    state.correctKeystrokes /
-      minutes
-  );
-
-  // ==========================================================
-  // STRONG / WEAK KEYS
-  // ==========================================================
-
-  const keyEntries =
-    Object.entries(
-      state.keyStats
-    )
-      .map(
-        ([
-          key,
-          stats,
-        ]) => {
-          const total =
-            stats.correct +
-            stats.wrong;
-
-          const accuracy =
-            total > 0
-              ? Math.round(
-                  (stats.correct /
-                    total) *
-                    100
-                )
-              : 0;
-
-          return {
-            key,
-            ...stats,
-            total,
-            accuracy,
-          };
-        }
-      )
-      .sort(
-        (a, b) =>
-          b.accuracy -
-          a.accuracy
-      );
-
-  const strongKeys =
-    keyEntries
-      .filter(
-        (x) =>
-          x.total >= 2
-      )
-      .slice(0, 5);
-
-  const weakKeys =
-    [...keyEntries]
-      .sort(
-        (a, b) =>
-          a.accuracy -
-          b.accuracy
-      )
-      .filter(
-        (x) =>
-          x.total >= 1
-      )
-      .slice(0, 5);
-
-  // ==========================================================
-  // START SCREEN
-  // ==========================================================
 
   if (
     !gameStarted
@@ -289,10 +388,6 @@ export default function App() {
       />
     );
   }
-
-  // ==========================================================
-  // MAIN GAME
-  // ==========================================================
 
   return (
     <div
@@ -316,10 +411,7 @@ export default function App() {
         }
       />
 
-      {/* ====================================================
-          TOP SPEEDOMETER
-      ==================================================== */}
-
+      {/* LIVE HUD */}
       {!state.gameOver && (
         <div
           style={{
@@ -391,14 +483,14 @@ export default function App() {
             <div>
               WPM{" "}
               <b>
-                {wpm}
+                {liveWpm}
               </b>
             </div>
 
             <div>
               ACC{" "}
               <b>
-                {accuracy}%
+                {liveAccuracy}%
               </b>
             </div>
           </div>
@@ -437,10 +529,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ====================================================
-          MENU BUTTON
-      ==================================================== */}
-
+      {/* MENU BUTTON */}
       {!state.gameOver && (
         <button
           onClick={
@@ -476,10 +565,7 @@ export default function App() {
         </button>
       )}
 
-      {/* ====================================================
-          TYPING TARGET
-      ==================================================== */}
-
+      {/* WORD INPUT */}
       {!state.gameOver &&
         state.typingMode ===
           "word" && (
@@ -542,10 +628,7 @@ export default function App() {
           </div>
         )}
 
-      {/* ====================================================
-          PARAGRAPH
-      ==================================================== */}
-
+      {/* PARAGRAPH INPUT */}
       {!state.gameOver &&
         state.typingMode ===
           "paragraph" && (
@@ -608,10 +691,7 @@ export default function App() {
           </div>
         )}
 
-      {/* ====================================================
-          GAME OVER
-      ==================================================== */}
-
+      {/* GAME OVER */}
       {state.gameOver && (
         <div
           style={{
@@ -690,8 +770,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* MAIN STATS */}
-
+            {/* FINAL STATS */}
             <div
               style={{
                 display:
@@ -704,43 +783,39 @@ export default function App() {
               {[
                 [
                   "SCORE",
-                  state.score,
+                  finalStats?.score ?? 0,
                 ],
                 [
                   "WPM",
-                  wpm,
+                  finalStats?.wpm ?? 0,
                 ],
                 [
                   "CPM",
-                  cpm,
+                  finalStats?.cpm ?? 0,
                 ],
                 [
                   "ACCURACY",
-                  `${accuracy}%`,
+                  `${finalStats?.accuracy ?? 0}%`,
                 ],
                 [
                   "MAX COMBO",
-                  `x${state.maxCombo}`,
+                  `x${finalStats?.maxCombo ?? 0}`,
                 ],
                 [
                   "MISTAKES",
-                  state.mistakes,
+                  finalStats?.mistakes ?? 0,
                 ],
                 [
                   "KEYSTROKES",
-                  state.totalKeystrokes,
+                  finalStats?.keystrokes ?? 0,
                 ],
                 [
                   "TIME",
-                  `${Math.round(
-                    state.elapsedTime
-                  )}s`,
+                  `${finalStats?.time ?? 0}s`,
                 ],
                 [
                   "MAX SPEED",
-                  `${Math.round(
-                    state.bikeSpeed
-                  )} km/h`,
+                  `${finalStats?.maxSpeed ?? 0} km/h`,
                 ],
               ].map(
                 (item) => (
@@ -794,7 +869,6 @@ export default function App() {
             </div>
 
             {/* KEY ANALYSIS */}
-
             <div
               style={{
                 display:
@@ -831,8 +905,11 @@ export default function App() {
                   STRONG KEYS
                 </div>
 
-                {strongKeys.length ===
-                0 ? (
+                {(
+                  finalStats
+                    ?.strongKeys
+                    .length ?? 0
+                ) === 0 ? (
                   <div
                     style={{
                       opacity:
@@ -842,7 +919,7 @@ export default function App() {
                     Not enough data
                   </div>
                 ) : (
-                  strongKeys.map(
+                  finalStats?.strongKeys.map(
                     (key) => (
                       <div
                         key={
@@ -895,8 +972,11 @@ export default function App() {
                   WEAK KEYS
                 </div>
 
-                {weakKeys.length ===
-                0 ? (
+                {(
+                  finalStats
+                    ?.weakKeys
+                    .length ?? 0
+                ) === 0 ? (
                   <div
                     style={{
                       opacity:
@@ -906,7 +986,7 @@ export default function App() {
                     No weak keys detected
                   </div>
                 ) : (
-                  weakKeys.map(
+                  finalStats?.weakKeys.map(
                     (key) => (
                       <div
                         key={
@@ -936,7 +1016,6 @@ export default function App() {
             </div>
 
             {/* BUTTONS */}
-
             <div
               style={{
                 display:
@@ -950,6 +1029,10 @@ export default function App() {
             >
               <button
                 onClick={() => {
+                  setFinalStats(
+                    null
+                  );
+
                   startGame(
                     gameSettings
                   );
