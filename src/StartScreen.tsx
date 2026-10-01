@@ -191,6 +191,8 @@ export default function StartScreen({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<HTMLDivElement>(null);
+  const cursorPointRef = useRef<HTMLDivElement>(null);
+  const cursorTargetRef = useRef({ x: 0, y: 0 });
 
   const [settings, setSettings] =
     useState<GameSettings>(DEFAULT_GAME_SETTINGS);
@@ -369,6 +371,51 @@ export default function StartScreen({
     };
   }, []);
 
+  /*
+   * SMOOTH MOUSE FOLLOW POINT
+   */
+  useEffect(() => {
+    const point = cursorPointRef.current;
+    const scene = sceneRef.current;
+    if (!point || !scene) return;
+
+    let targetX = window.innerWidth / 2;
+    let targetY = window.innerHeight / 2;
+    let currentX = targetX;
+    let currentY = targetY;
+    let frame = 0;
+
+    cursorTargetRef.current = { x: targetX, y: targetY };
+
+    const move = (event: MouseEvent) => {
+      cursorTargetRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+      };
+    };
+
+    const animate = () => {
+      targetX = cursorTargetRef.current.x;
+      targetY = cursorTargetRef.current.y;
+
+      currentX += (targetX - currentX) * 0.12;
+      currentY += (targetY - currentY) * 0.12;
+
+      point.style.transform =
+        `translate3d(${currentX}px, ${currentY}px, 0) translate(-50%, -50%)`;
+
+      frame = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener("mousemove", move);
+    frame = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener("mousemove", move);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
   const selectVehicle = (index: number) => {
     if (index === vehicleIndex) return;
 
@@ -420,6 +467,12 @@ export default function StartScreen({
       <canvas ref={canvasRef} className="garageCanvas" />
 
       <div className="cursorLight" />
+
+      <div
+        ref={cursorPointRef}
+        className="cursorFollowPoint"
+        aria-hidden="true"
+      />
 
       {/* TOP NAV */}
       <header className="topNav">
@@ -866,6 +919,57 @@ export default function StartScreen({
               rgba(130,200,255,.07),
               transparent 28%
             );
+        }
+
+        .cursorFollowPoint {
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          pointer-events: none;
+          z-index: 100;
+          background: #ffffff;
+          will-change: transform;
+
+          box-shadow:
+            0 0 7px rgba(255,255,255,.95),
+            0 0 16px rgba(120,210,255,.9),
+            0 0 32px rgba(80,160,255,.48);
+
+          animation: cursorPulse 1.8s ease-in-out infinite;
+        }
+
+        .cursorFollowPoint::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          background: radial-gradient(
+            circle,
+            rgba(120,205,255,.13),
+            rgba(80,160,255,.045) 38%,
+            transparent 72%
+          );
+          filter: blur(2px);
+        }
+
+        @keyframes cursorPulse {
+          0%,
+          100% {
+            opacity: .78;
+            scale: .9;
+          }
+
+          50% {
+            opacity: 1;
+            scale: 1.12;
+          }
         }
 
         .garage::after {
