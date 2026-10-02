@@ -525,6 +525,7 @@ export function useGameEngine() {
 
         {
           x: prev.bikeX,
+
           y:
             prev.bikeY -
             50,
@@ -615,6 +616,7 @@ export function useGameEngine() {
 
         {
           x: prev.bikeX,
+
           y:
             prev.bikeY -
             50,
@@ -769,6 +771,7 @@ export function useGameEngine() {
 
         {
           x: prev.bikeX,
+
           y:
             prev.bikeY -
             55,
@@ -971,6 +974,19 @@ export function useGameEngine() {
                     stat,
                 },
 
+                // Immediate speed response on every correct keystroke.
+                bikeSpeed:
+                  Math.min(
+                    targetSpeed,
+                    prev.bikeSpeed +
+                      Math.max(
+                        10,
+                        (targetSpeed -
+                          prev.bikeSpeed) *
+                          0.35
+                      )
+                  ),
+
                 health:
                   Math.min(
                     prev.maxHealth,
@@ -1119,6 +1135,19 @@ export function useGameEngine() {
                     oldKeyStat.wrong,
                 },
               },
+
+              // Immediate speed response on every correct keystroke.
+              bikeSpeed:
+                Math.min(
+                  targetSpeedRef.current,
+                  prev.bikeSpeed +
+                    Math.max(
+                      10,
+                      (targetSpeedRef.current -
+                        prev.bikeSpeed) *
+                        0.35
+                    )
+                ),
 
               health:
                 Math.min(
