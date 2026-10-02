@@ -8,7 +8,7 @@ interface Props {
   height: number;
 }
 
-const CYAN = "#72efff";
+const CYAN = "#73f7ff";
 const WHITE = "#eafcff";
 
 function roundedRect(
@@ -24,42 +24,13 @@ function roundedRect(
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.lineTo(x + w - radius, y);
-  ctx.quadraticCurveTo(
-    x + w,
-    y,
-    x + w,
-    y + radius,
-  );
-  ctx.lineTo(
-    x + w,
-    y + h - radius,
-  );
-  ctx.quadraticCurveTo(
-    x + w,
-    y + h,
-    x + w - radius,
-    y + h,
-  );
-  ctx.lineTo(
-    x + radius,
-    y + h,
-  );
-  ctx.quadraticCurveTo(
-    x,
-    y + h,
-    x,
-    y + h - radius,
-  );
-  ctx.lineTo(
-    x,
-    y + radius,
-  );
-  ctx.quadraticCurveTo(
-    x,
-    y,
-    x + radius,
-    y,
-  );
+  ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+  ctx.lineTo(x + w, y + h - radius);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+  ctx.lineTo(x + radius, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
   ctx.closePath();
 }
 
@@ -70,19 +41,16 @@ function polygon(
   ctx.beginPath();
 
   points.forEach(([x, y], i) => {
-    if (i === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
   });
 
   ctx.closePath();
 }
 
-/* ============================================================
+/* =========================================================
    CITY
-============================================================ */
+========================================================= */
 
 function drawCity(
   ctx: CanvasRenderingContext2D,
@@ -92,157 +60,76 @@ function drawCity(
   offset: number,
 ) {
   const buildings = [
-    [0.03, 0.28, 0.09],
-    [0.10, 0.42, 0.07],
-    [0.17, 0.31, 0.11],
-    [0.25, 0.52, 0.065],
-    [0.31, 0.34, 0.09],
-    [0.39, 0.46, 0.07],
-    [0.46, 0.30, 0.08],
-    [0.53, 0.48, 0.065],
-    [0.60, 0.34, 0.09],
-    [0.67, 0.54, 0.065],
-    [0.74, 0.32, 0.10],
-    [0.82, 0.45, 0.07],
+    [0.02, 0.27, 0.09],
+    [0.09, 0.40, 0.07],
+    [0.16, 0.30, 0.11],
+    [0.24, 0.52, 0.065],
+    [0.30, 0.33, 0.09],
+    [0.38, 0.45, 0.07],
+    [0.45, 0.30, 0.09],
+    [0.52, 0.48, 0.065],
+    [0.59, 0.34, 0.09],
+    [0.66, 0.54, 0.065],
+    [0.73, 0.32, 0.10],
+    [0.81, 0.44, 0.07],
     [0.89, 0.30, 0.10],
-    [0.96, 0.41, 0.085],
+    [0.96, 0.41, 0.08],
   ];
 
-  for (
-    let i = 0;
-    i < buildings.length;
-    i++
-  ) {
-    const [
-      fraction,
-      heightFactor,
-      widthFactor,
-    ] = buildings[i];
+  for (let i = 0; i < buildings.length; i++) {
+    const [fraction, heightFactor, widthFactor] = buildings[i];
 
-    const bw =
-      w * widthFactor;
-
-    const bh =
-      horizon * heightFactor;
+    const bw = w * widthFactor;
+    const bh = horizon * heightFactor;
 
     const drift =
-      (offset *
-        (0.07 +
-          (i % 3) * 0.025)) %
-      (w + 120);
+      (offset * (0.08 + (i % 3) * 0.025)) % (w + 100);
 
     const x =
-      ((fraction * w -
-        drift +
-        w +
-        120) %
-        (w + 120)) -
-      60;
+      ((fraction * w - drift + w + 100) % (w + 100)) - 50;
 
-    const y =
-      horizon - bh;
+    const y = horizon - bh;
 
-    const buildingGradient =
-      ctx.createLinearGradient(
-        x,
-        y,
-        x + bw,
-        horizon,
-      );
-
-    buildingGradient.addColorStop(
-      0,
-      "#14212d",
-    );
-
-    buildingGradient.addColorStop(
-      0.5,
-      "#09121b",
-    );
-
-    buildingGradient.addColorStop(
-      1,
-      "#03070c",
-    );
-
-    ctx.fillStyle =
-      buildingGradient;
-
-    ctx.fillRect(
+    const building = ctx.createLinearGradient(
       x,
       y,
-      bw,
-      bh,
+      x,
+      horizon,
     );
 
-    ctx.strokeStyle =
-      "rgba(105,220,245,0.12)";
+    building.addColorStop(0, "#13202d");
+    building.addColorStop(0.55, "#09131d");
+    building.addColorStop(1, "#03070c");
 
+    ctx.fillStyle = building;
+    ctx.fillRect(x, y, bw, bh);
+
+    ctx.strokeStyle = "rgba(110,220,245,0.13)";
     ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, bw - 1, bh);
 
-    ctx.strokeRect(
-      x + 0.5,
-      y + 0.5,
-      bw - 1,
-      bh,
-    );
+    const cols = Math.max(2, Math.floor(bw / 12));
+    const rows = Math.max(2, Math.floor(bh / 14));
 
-    const cols =
-      Math.max(
-        2,
-        Math.floor(bw / 11),
-      );
-
-    const rows =
-      Math.max(
-        2,
-        Math.floor(bh / 13),
-      );
-
-    for (
-      let row = 0;
-      row < rows;
-      row++
-    ) {
-      for (
-        let col = 0;
-        col < cols;
-        col++
-      ) {
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
         const active =
-          Math.sin(
-            i * 17 +
-              row * 8.2 +
-              col * 3.7,
-          ) > 0.2;
+          Math.sin(i * 17 + row * 8.2 + col * 3.4) > 0.2;
 
-        if (!active)
-          continue;
+        if (!active) continue;
 
         const alpha =
-          0.12 +
-          (Math.sin(
-            time * 0.001 +
-              i +
-              row,
-          ) +
-            1) *
-            0.045;
+          0.11 +
+          (Math.sin(time * 0.001 + i + row) + 1) * 0.045;
 
         ctx.fillStyle =
           i % 4 === 0
-            ? `rgba(100,225,255,${alpha})`
-            : `rgba(201,224,235,${alpha * 0.55})`;
+            ? `rgba(91,224,255,${alpha})`
+            : `rgba(195,220,232,${alpha * 0.55})`;
 
         ctx.fillRect(
-          x +
-            5 +
-            col *
-              ((bw - 10) /
-                cols),
-          y +
-            7 +
-            row * 11,
+          x + 5 + col * ((bw - 10) / cols),
+          y + 7 + row * 11,
           2.5,
           4,
         );
@@ -250,133 +137,128 @@ function drawCity(
     }
   }
 
-  const haze =
-    ctx.createLinearGradient(
-      0,
-      horizon - 100,
-      0,
-      horizon + 50,
-    );
+  const haze = ctx.createLinearGradient(
+    0,
+    horizon - 100,
+    0,
+    horizon + 60,
+  );
 
   haze.addColorStop(
     0,
-    "rgba(20,83,111,0)",
+    "rgba(25,105,140,0)",
   );
 
   haze.addColorStop(
     1,
-    "rgba(45,165,195,0.13)",
+    "rgba(44,177,211,0.14)",
   );
 
-  ctx.fillStyle =
-    haze;
+  ctx.fillStyle = haze;
 
   ctx.fillRect(
     0,
     horizon - 100,
     w,
-    150,
+    160,
   );
 }
 
-/* ============================================================
+/* =========================================================
    ROAD
-============================================================ */
+========================================================= */
 
 function drawRoad(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
   horizon: number,
-  speed: number,
   roadOffset: number,
   boost: boolean,
 ) {
-  const center =
-    w * 0.5;
+  const center = w * 0.5;
 
-  const topHalf =
-    w * 0.045;
+  const topHalf = w * 0.045;
+  const bottomHalf = w * 0.68;
 
-  const bottomHalf =
-    w * 0.69;
+  const ground = ctx.createLinearGradient(
+    0,
+    horizon,
+    0,
+    h,
+  );
 
-  const road =
-    ctx.createLinearGradient(
-      0,
-      horizon,
-      0,
-      h,
-    );
+  ground.addColorStop(
+    0,
+    "#08121a",
+  );
+
+  ground.addColorStop(
+    1,
+    "#020508",
+  );
+
+  ctx.fillStyle = ground;
+
+  ctx.fillRect(
+    0,
+    horizon,
+    w,
+    h - horizon,
+  );
+
+  const road = ctx.createLinearGradient(
+    0,
+    horizon,
+    0,
+    h,
+  );
 
   road.addColorStop(
     0,
-    "#111b24",
+    "#111d27",
   );
 
   road.addColorStop(
     0.5,
-    "#0a1118",
+    "#09131c",
   );
 
   road.addColorStop(
     1,
-    "#03070b",
+    "#04080d",
   );
 
   polygon(ctx, [
-    [
-      center - topHalf,
-      horizon,
-    ],
-    [
-      center + topHalf,
-      horizon,
-    ],
-    [
-      center + bottomHalf,
-      h,
-    ],
-    [
-      center - bottomHalf,
-      h,
-    ],
+    [center - topHalf, horizon],
+    [center + topHalf, horizon],
+    [center + bottomHalf, h],
+    [center - bottomHalf, h],
   ]);
 
-  ctx.fillStyle =
-    road;
-
+  ctx.fillStyle = road;
   ctx.fill();
 
-  /* road horizontal reflections */
+  /* asphalt lines */
 
-  for (
-    let i = 0;
-    i < 25;
-    i++
-  ) {
+  for (let i = 0; i < 26; i++) {
     const p =
-      ((i / 25) +
-        ((roadOffset *
-          0.00065) %
-          1)) %
+      ((i / 26) +
+        ((roadOffset * 0.0007) % 1)) %
       1;
 
     const y =
       horizon +
-      Math.pow(
-        p,
-        1.78,
-      ) *
+      Math.pow(p, 1.75) *
         (h - horizon);
 
     const half =
       topHalf +
-      (bottomHalf -
-        topHalf) *
+      (bottomHalf - topHalf) *
         p;
 
-    ctx.strokeStyle = `rgba(110,176,196,${0.02 + p * 0.04})`;
+    ctx.strokeStyle =
+      `rgba(100,170,195,${0.02 + p * 0.035})`;
 
     ctx.lineWidth = 1;
 
@@ -397,10 +279,7 @@ function drawRoad(
 
   /* road edges */
 
-  for (const side of [
-    -1,
-    1,
-  ]) {
+  for (const side of [-1, 1]) {
     const edge =
       ctx.createLinearGradient(
         0,
@@ -411,43 +290,36 @@ function drawRoad(
 
     edge.addColorStop(
       0,
-      "rgba(72,211,240,0.2)",
+      "rgba(80,220,245,0.20)",
     );
 
     edge.addColorStop(
-      0.45,
+      0.4,
       boost
-        ? "rgba(91,236,255,0.75)"
-        : "rgba(67,190,222,0.48)",
+        ? "rgba(86,240,255,0.75)"
+        : "rgba(64,190,220,0.48)",
     );
 
     edge.addColorStop(
       1,
-      "rgba(55,153,190,0.12)",
+      "rgba(55,160,200,0.12)",
     );
 
-    ctx.strokeStyle =
-      edge;
-
+    ctx.strokeStyle = edge;
     ctx.lineWidth = 2;
 
-    ctx.shadowColor =
-      CYAN;
-
-    ctx.shadowBlur =
-      boost ? 18 : 9;
+    ctx.shadowColor = CYAN;
+    ctx.shadowBlur = boost ? 18 : 9;
 
     ctx.beginPath();
 
     ctx.moveTo(
-      center +
-        side * topHalf,
+      center + side * topHalf,
       horizon,
     );
 
     ctx.lineTo(
-      center +
-        side * bottomHalf,
+      center + side * bottomHalf,
       h,
     );
 
@@ -456,63 +328,45 @@ function drawRoad(
     ctx.shadowBlur = 0;
   }
 
-  /* center lane markers */
+  /* center lane */
 
-  const markerCount =
-    14;
-
-  for (
-    let i = 0;
-    i < markerCount;
-    i++
-  ) {
+  for (let i = 0; i < 14; i++) {
     const p =
-      ((i / markerCount) +
-        ((roadOffset *
-          0.0017) %
-          1)) %
+      ((i / 14) +
+        ((roadOffset * 0.0016) % 1)) %
       1;
 
     const y =
       horizon +
-      Math.pow(
-        p,
-        1.82,
-      ) *
+      Math.pow(p, 1.82) *
         (h - horizon);
 
     const scale =
       0.06 +
-      p * 1.3;
+      p * 1.25;
 
     const markerW =
       Math.max(
         2,
-        w *
-          0.003 *
-          scale,
+        w * 0.003 * scale,
       );
 
     const markerH =
       Math.max(
         3,
-        h *
-          0.015 *
-          scale,
+        h * 0.016 * scale,
       );
 
-    ctx.fillStyle = `rgba(180,236,247,${0.18 + p * 0.58})`;
+    ctx.fillStyle =
+      `rgba(180,235,245,${0.16 + p * 0.58})`;
 
-    ctx.shadowColor =
-      CYAN;
-
+    ctx.shadowColor = CYAN;
     ctx.shadowBlur =
-      p > 0.55 ? 8 : 0;
+      p > 0.55 ? 7 : 0;
 
     roundedRect(
       ctx,
-      center -
-        markerW / 2,
+      center - markerW / 2,
       y,
       markerW,
       markerH,
@@ -524,37 +378,26 @@ function drawRoad(
     ctx.shadowBlur = 0;
   }
 
-  /* reflective streaks */
+  /* wet road reflections */
 
   ctx.save();
 
-  ctx.globalCompositeOperation =
-    "screen";
+  ctx.globalCompositeOperation = "screen";
 
-  for (
-    let i = 0;
-    i < 18;
-    i++
-  ) {
+  for (let i = 0; i < 18; i++) {
     const p =
       ((i / 18) +
-        ((roadOffset *
-          0.00085) %
-          1)) %
+        ((roadOffset * 0.0009) % 1)) %
       1;
 
     const y =
       horizon +
-      Math.pow(
-        p,
-        1.9,
-      ) *
+      Math.pow(p, 1.9) *
         (h - horizon);
 
     const half =
       topHalf +
-      (bottomHalf -
-        topHalf) *
+      (bottomHalf - topHalf) *
         p;
 
     const x =
@@ -563,154 +406,52 @@ function drawRoad(
         half *
         0.65;
 
-    const length =
-      (7 + p * 42) *
-      (w / 1200);
+    const len =
+      6 +
+      p * 38;
 
     const reflection =
       ctx.createLinearGradient(
-        x - length,
+        x - len,
         y,
-        x + length,
+        x + len,
         y,
       );
 
     reflection.addColorStop(
       0,
-      "rgba(74,220,255,0)",
+      "rgba(80,220,255,0)",
     );
 
     reflection.addColorStop(
       0.5,
-      `rgba(74,220,255,${0.025 + p * 0.11})`,
+      `rgba(80,220,255,${0.025 + p * 0.10})`,
     );
 
     reflection.addColorStop(
       1,
-      "rgba(74,220,255,0)",
+      "rgba(80,220,255,0)",
     );
 
-    ctx.fillStyle =
-      reflection;
+    ctx.fillStyle = reflection;
 
     ctx.fillRect(
-      x - length,
+      x - len,
       y,
-      length * 2,
-      Math.max(
-        1,
-        p * 3,
-      ),
+      len * 2,
+      Math.max(1, p * 3),
     );
   }
 
   ctx.restore();
-
-  /* road glow */
-
-  const roadGlow =
-    ctx.createRadialGradient(
-      center,
-      h * 0.82,
-      0,
-      center,
-      h * 0.82,
-      w * 0.55,
-    );
-
-  roadGlow.addColorStop(
-    0,
-    boost
-      ? "rgba(42,194,240,0.13)"
-      : "rgba(35,139,175,0.07)",
-  );
-
-  roadGlow.addColorStop(
-    1,
-    "rgba(0,0,0,0)",
-  );
-
-  ctx.fillStyle =
-    roadGlow;
-
-  ctx.fillRect(
-    0,
-    horizon,
-    w,
-    h - horizon,
-  );
-
-  /* side moving lights */
-
-  for (
-    let i = 0;
-    i < 10;
-    i++
-  ) {
-    const p =
-      ((i / 10) +
-        ((roadOffset *
-          0.0012) %
-          1)) %
-      1;
-
-    const y =
-      horizon +
-      Math.pow(
-        p,
-        1.65,
-      ) *
-        (h - horizon);
-
-    const roadHalf =
-      w *
-      (0.045 +
-        p * 0.63);
-
-    const len =
-      5 + p * 22;
-
-    ctx.strokeStyle = `rgba(72,212,243,${0.08 + p * 0.24})`;
-
-    ctx.lineWidth =
-      1 +
-      p * 1.3;
-
-    for (const side of [
-      -1,
-      1,
-    ]) {
-      ctx.beginPath();
-
-      ctx.moveTo(
-        center +
-          side *
-            (roadHalf + 4),
-        y,
-      );
-
-      ctx.lineTo(
-        center +
-          side *
-            (roadHalf +
-              4 +
-              len),
-        y +
-          len *
-            0.4,
-      );
-
-      ctx.stroke();
-    }
-  }
 }
 
-/* ============================================================
-   FORWARD-FACING VEHICLE
+/* =========================================================
+   VEHICLE
    IMPORTANT:
-   This is now a REAR/COCKPIT racing view.
-   No side-facing car.
-============================================================ */
+   THIS IS A REAR-FACING RACING VIEW.
+   THE VEHICLE IS NOT SIDEWAYS.
+========================================================= */
 
 function drawVehicle(
   ctx: CanvasRenderingContext2D,
@@ -724,37 +465,17 @@ function drawVehicle(
 ) {
   ctx.save();
 
-  ctx.translate(
-    x,
-    y,
-  );
-
-  /*
-   * Very small suspension movement.
-   * This keeps vehicle grounded instead of looking like
-   * it is flying.
-   */
-  const suspension =
-    Math.sin(
-      time * 0.009,
-    ) *
-    Math.min(
-      1.2,
-      speed / 180,
-    );
-
-  ctx.translate(
-    0,
-    suspension,
-  );
+  ctx.translate(x, y);
 
   const scale =
     Math.max(
-      0.78,
+      0.65,
       Math.min(
-        1.25,
-        window.innerWidth /
-          1250,
+        1.05,
+        Math.min(
+          window.innerWidth,
+          window.innerHeight,
+        ) / 850,
       ),
     );
 
@@ -763,46 +484,49 @@ function drawVehicle(
     scale,
   );
 
+  /* grounded suspension */
+
+  ctx.translate(
+    0,
+    Math.sin(time * 0.008) *
+      Math.min(
+        1.5,
+        speed / 100,
+      ),
+  );
+
   const isBike =
     vehicle === "bike";
 
   const isTruck =
     vehicle === "truck";
 
-  const isSports =
-    vehicle ===
-    "sports-car";
-
-  const isSuper =
-    vehicle ===
-    "supercar";
-
   const bodyWidth =
     isBike
-      ? 64
+      ? 48
       : isTruck
-        ? 108
-        : 116;
+        ? 86
+        : 82;
 
-  /* ========================================================
-     GROUND SHADOW
-  ======================================================== */
+  /* =====================================================
+     SHADOW
+  ===================================================== */
 
   const shadow =
     ctx.createRadialGradient(
       0,
-      20,
+      28,
       0,
       0,
-      20,
-      bodyWidth * 0.9,
+      28,
+      bodyWidth * 1.5,
     );
 
   shadow.addColorStop(
     0,
     boost
-      ? "rgba(61,222,255,0.28)"
-      : "rgba(30,155,190,0.16)",
+      ? "rgba(70,220,255,0.28)"
+      : "rgba(40,160,200,0.15)",
   );
 
   shadow.addColorStop(
@@ -810,17 +534,15 @@ function drawVehicle(
     "rgba(0,0,0,0)",
   );
 
-  ctx.fillStyle =
-    shadow;
+  ctx.fillStyle = shadow;
 
   ctx.beginPath();
 
   ctx.ellipse(
     0,
-    21,
-    bodyWidth *
-      0.85,
-    isBike ? 15 : 18,
+    28,
+    bodyWidth * 1.35,
+    18,
     0,
     0,
     Math.PI * 2,
@@ -828,73 +550,68 @@ function drawVehicle(
 
   ctx.fill();
 
-  /* ========================================================
-     SPEED TRAILS BEHIND VEHICLE
-  ======================================================== */
+  /* =====================================================
+     SPEED TRAILS
+  ===================================================== */
 
   if (
-    speed > 15 &&
+    speed > 12 &&
     !gameOver
   ) {
     ctx.save();
 
     ctx.globalAlpha =
       Math.min(
-        0.42,
-        speed / 330,
+        0.45,
+        speed / 300,
       );
 
-    for (
-      let i = 0;
-      i < 8;
-      i++
-    ) {
+    for (let i = 0; i < 8; i++) {
       const yy =
-        -4 +
-        i * 4;
+        -15 +
+        i * 5;
 
       const length =
         18 +
         ((i * 19 +
-          time * 0.13) %
+          time * 0.12) %
           45) *
-          (speed / 150);
+          (speed / 130);
 
       const trail =
         ctx.createLinearGradient(
-          -length,
-          yy,
           0,
+          yy,
+          -length,
           yy,
         );
 
       trail.addColorStop(
         0,
-        "rgba(70,218,255,0)",
+        "rgba(80,220,255,0)",
       );
 
       trail.addColorStop(
         1,
-        "rgba(70,218,255,0.7)",
+        "rgba(80,220,255,0.75)",
       );
 
-      ctx.strokeStyle =
-        trail;
+      ctx.strokeStyle = trail;
 
       ctx.lineWidth =
         i % 2 === 0
-          ? 1.4
+          ? 1.5
           : 0.8;
 
       ctx.beginPath();
 
       ctx.moveTo(
-        -length,
+        0,
         yy,
       );
 
       ctx.lineTo(
-        0,
+        -length,
         yy,
       );
 
@@ -904,25 +621,23 @@ function drawVehicle(
     ctx.restore();
   }
 
-  /* ========================================================
+  /* =====================================================
      BIKE — REAR VIEW
-  ======================================================== */
+  ===================================================== */
 
   if (isBike) {
-    /*
-     * Rear tyre
-     */
+    /* rear tyre */
 
     ctx.fillStyle =
-      "#020407";
+      "#020406";
 
     ctx.beginPath();
 
     ctx.ellipse(
       0,
-      8,
-      18,
-      30,
+      11,
+      17,
+      28,
       0,
       0,
       Math.PI * 2,
@@ -931,18 +646,16 @@ function drawVehicle(
     ctx.fill();
 
     ctx.strokeStyle =
-      "#718d99";
+      "#829da9";
 
     ctx.lineWidth = 2.5;
 
     ctx.stroke();
 
-    /*
-     * Wheel rim
-     */
+    /* wheel rim */
 
     ctx.strokeStyle =
-      "rgba(117,225,245,0.75)";
+      "rgba(120,230,250,0.75)";
 
     ctx.lineWidth = 1.5;
 
@@ -950,8 +663,8 @@ function drawVehicle(
 
     ctx.ellipse(
       0,
+      11,
       8,
-      9,
       20,
       0,
       0,
@@ -960,89 +673,82 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Rear body
-     */
+    /* motorcycle body */
 
-    const bikeBody =
+    const body =
       ctx.createLinearGradient(
-        -22,
-        -13,
-        22,
-        15,
+        -20,
+        -16,
+        20,
+        20,
       );
 
-    bikeBody.addColorStop(
+    body.addColorStop(
       0,
-      "#d5e7ed",
+      "#d8edf2",
     );
 
-    bikeBody.addColorStop(
-      0.15,
-      "#426172",
+    body.addColorStop(
+      0.16,
+      "#426274",
     );
 
-    bikeBody.addColorStop(
+    body.addColorStop(
       0.5,
-      "#162a38",
+      "#162b39",
     );
 
-    bikeBody.addColorStop(
+    body.addColorStop(
       1,
-      "#050a10",
+      "#04090e",
     );
 
-    ctx.fillStyle =
-      bikeBody;
+    ctx.fillStyle = body;
 
     polygon(ctx, [
-      [-20, -12],
-      [-11, -22],
-      [11, -22],
-      [20, -12],
-      [14, 14],
+      [-20, -13],
+      [-11, -24],
+      [11, -24],
+      [20, -13],
+      [14, 16],
       [0, 21],
-      [-14, 14],
+      [-14, 16],
     ]);
 
     ctx.fill();
 
     ctx.strokeStyle =
-      "rgba(130,233,251,0.8)";
+      "rgba(135,235,252,0.85)";
 
     ctx.lineWidth = 1.4;
 
     ctx.stroke();
 
-    /*
-     * Rider / upper section
-     */
+    /* rider */
 
     ctx.fillStyle =
-      "#0a1119";
+      "#080f16";
 
     polygon(ctx, [
-      [-9, -21],
-      [-7, -39],
-      [0, -45],
-      [7, -39],
-      [9, -21],
+      [-9, -23],
+      [-7, -40],
+      [0, -46],
+      [7, -40],
+      [9, -23],
     ]);
 
     ctx.fill();
 
-    /*
-     * Helmet
-     */
+    /* helmet */
 
     ctx.fillStyle =
-      "#05090e";
+      "#05090d";
 
     ctx.beginPath();
 
     ctx.ellipse(
       0,
-      -45,
+      -46,
       8,
       9,
       0,
@@ -1053,46 +759,43 @@ function drawVehicle(
     ctx.fill();
 
     ctx.strokeStyle =
-      "rgba(119,228,246,0.55)";
+      "rgba(120,225,245,0.6)";
 
     ctx.lineWidth = 1;
 
     ctx.stroke();
 
-    /*
-     * Helmet visor
-     */
+    /* visor */
 
     const visor =
       ctx.createLinearGradient(
         -7,
-        -47,
+        -49,
         7,
         -43,
       );
 
     visor.addColorStop(
       0,
-      "#24566b",
+      "#24566a",
     );
 
     visor.addColorStop(
       0.5,
-      "#b5f8ff",
+      "#c2f8ff",
     );
 
     visor.addColorStop(
       1,
-      "#28586c",
+      "#28586a",
     );
 
-    ctx.fillStyle =
-      visor;
+    ctx.fillStyle = visor;
 
     roundedRect(
       ctx,
       -6,
-      -48,
+      -49,
       12,
       4,
       2,
@@ -1100,39 +803,35 @@ function drawVehicle(
 
     ctx.fill();
 
-    /*
-     * Rear red light
-     */
+    /* rear light */
 
     ctx.shadowColor =
       "#ff4f68";
 
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 16;
 
     ctx.fillStyle =
-      "#ff4e66";
+      "#ff4f68";
 
     roundedRect(
       ctx,
       -6,
-      4,
+      3,
       12,
       5,
-      2.5,
+      2,
     );
 
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-    /*
-     * Rear cyan strips
-     */
+    /* side cyan strips */
 
     ctx.strokeStyle =
       boost
-        ? "#9fffff"
-        : "#50dff4";
+        ? "#b0ffff"
+        : "#4ddcf5";
 
     ctx.lineWidth = 2;
 
@@ -1145,7 +844,7 @@ function drawVehicle(
 
     ctx.lineTo(
       -17,
-      8,
+      9,
     );
 
     ctx.moveTo(
@@ -1155,97 +854,46 @@ function drawVehicle(
 
     ctx.lineTo(
       17,
-      8,
+      9,
     );
 
     ctx.stroke();
-
-    /*
-     * Exhaust
-     */
-
-    if (
-      boost &&
-      speed > 10 &&
-      !gameOver
-    ) {
-      const exhaust =
-        ctx.createLinearGradient(
-          0,
-          16,
-          0,
-          70,
-        );
-
-      exhaust.addColorStop(
-        0,
-        "rgba(210,250,255,0.8)",
-      );
-
-      exhaust.addColorStop(
-        0.25,
-        "rgba(70,219,255,0.55)",
-      );
-
-      exhaust.addColorStop(
-        1,
-        "rgba(50,180,255,0)",
-      );
-
-      ctx.fillStyle =
-        exhaust;
-
-      polygon(ctx, [
-        [-5, 17],
-        [5, 17],
-        [9, 63],
-        [0, 74],
-        [-9, 63],
-      ]);
-
-      ctx.fill();
-    }
   }
 
-  /* ========================================================
+  /* =====================================================
      CAR — REAR VIEW
-  ======================================================== */
+  ===================================================== */
 
   if (
-    isSports ||
-    isSuper
+    vehicle === "sports-car" ||
+    vehicle === "supercar"
   ) {
     const carColor =
-      isSports
-        ? "#b84650"
-        : "#6265c7";
-
-    /*
-     * Main rear body.
-     * Wide at bottom, narrower at roof.
-     */
+      vehicle === "sports-car"
+        ? "#b94854"
+        : "#686bd0";
 
     const body =
       ctx.createLinearGradient(
         0,
-        -32,
+        -35,
         0,
-        30,
+        31,
       );
 
     body.addColorStop(
       0,
-      "#d9f2f7",
+      "#dff6fa",
     );
 
     body.addColorStop(
-      0.12,
+      0.14,
       carColor,
     );
 
     body.addColorStop(
-      0.55,
-      "#172a38",
+      0.52,
+      "#172b38",
     );
 
     body.addColorStop(
@@ -1253,8 +901,7 @@ function drawVehicle(
       "#05090e",
     );
 
-    ctx.fillStyle =
-      body;
+    ctx.fillStyle = body;
 
     polygon(ctx, [
       [-38, -28],
@@ -1276,16 +923,14 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Rear window
-     */
+    /* rear window */
 
     const glass =
       ctx.createLinearGradient(
         0,
-        -36,
+        -37,
         0,
-        -13,
+        -14,
       );
 
     glass.addColorStop(
@@ -1303,8 +948,7 @@ function drawVehicle(
       "#07121a",
     );
 
-    ctx.fillStyle =
-      glass;
+    ctx.fillStyle = glass;
 
     polygon(ctx, [
       [-22, -34],
@@ -1322,9 +966,7 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Rear spoiler
-     */
+    /* spoiler */
 
     ctx.fillStyle =
       "#09131d";
@@ -1345,14 +987,12 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Tail light bar
-     */
+    /* tail light */
 
     ctx.shadowColor =
       "#ff405b";
 
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 15;
 
     ctx.fillStyle =
       "#ff405b";
@@ -1362,49 +1002,43 @@ function drawVehicle(
       -36,
       2,
       72,
-      5,
-      2.5,
+      6,
+      2,
     );
 
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-    /*
-     * Tail light inner split
-     */
+    /* center light separation */
 
     ctx.fillStyle =
-      "rgba(255,230,235,0.75)";
+      "rgba(255,235,240,0.75)";
 
     ctx.fillRect(
       -2,
       2,
       4,
-      5,
+      6,
     );
 
-    /*
-     * Lower diffuser
-     */
+    /* lower diffuser */
 
     ctx.fillStyle =
       "#030609";
 
     polygon(ctx, [
       [-34, 12],
-      [-22, 27],
-      [22, 27],
+      [-22, 28],
+      [22, 28],
       [34, 12],
-      [27, 30],
-      [-27, 30],
+      [27, 31],
+      [-27, 31],
     ]);
 
     ctx.fill();
 
-    /*
-     * Rear wheels — viewed from behind
-     */
+    /* rear wheels */
 
     ctx.fillStyle =
       "#020407";
@@ -1413,7 +1047,7 @@ function drawVehicle(
 
     ctx.ellipse(
       -41,
-      19,
+      20,
       8,
       14,
       0,
@@ -1427,7 +1061,7 @@ function drawVehicle(
 
     ctx.ellipse(
       41,
-      19,
+      20,
       8,
       14,
       0,
@@ -1437,12 +1071,10 @@ function drawVehicle(
 
     ctx.fill();
 
-    /*
-     * Center exhausts
-     */
+    /* exhaust */
 
     ctx.fillStyle =
-      "#1d3948";
+      "#203c4a";
 
     ctx.beginPath();
 
@@ -1467,93 +1099,42 @@ function drawVehicle(
     );
 
     ctx.fill();
-
-    if (
-      boost &&
-      speed > 10 &&
-      !gameOver
-    ) {
-      const exhaust =
-        ctx.createLinearGradient(
-          0,
-          28,
-          0,
-          76,
-        );
-
-      exhaust.addColorStop(
-        0,
-        "rgba(215,252,255,0.8)",
-      );
-
-      exhaust.addColorStop(
-        0.25,
-        "rgba(64,219,255,0.5)",
-      );
-
-      exhaust.addColorStop(
-        1,
-        "rgba(40,180,255,0)",
-      );
-
-      ctx.fillStyle =
-        exhaust;
-
-      polygon(ctx, [
-        [-13, 27],
-        [-5, 27],
-        [-3, 72],
-        [-9, 82],
-      ]);
-
-      ctx.fill();
-
-      polygon(ctx, [
-        [5, 27],
-        [13, 27],
-        [9, 82],
-        [3, 72],
-      ]);
-
-      ctx.fill();
-    }
   }
 
-  /* ========================================================
+  /* =====================================================
      TRUCK — REAR VIEW
-  ======================================================== */
+  ===================================================== */
 
   if (isTruck) {
-    const truckBody =
+    const body =
       ctx.createLinearGradient(
         0,
-        -35,
+        -34,
         0,
         32,
       );
 
-    truckBody.addColorStop(
+    body.addColorStop(
       0,
-      "#6ba8c1",
+      "#6ca9c0",
     );
 
-    truckBody.addColorStop(
-      0.2,
-      "#326f8b",
+    body.addColorStop(
+      0.22,
+      "#326f8a",
     );
 
-    truckBody.addColorStop(
+    body.addColorStop(
       0.65,
-      "#102330",
+      "#102430",
     );
 
-    truckBody.addColorStop(
+    body.addColorStop(
       1,
       "#05090d",
     );
 
-    ctx.fillStyle =
-      truckBody;
+    ctx.fillStyle = body;
 
     polygon(ctx, [
       [-48, -31],
@@ -1571,9 +1152,7 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Rear cargo door
-     */
+    /* cargo door */
 
     ctx.fillStyle =
       "#0b1b26";
@@ -1594,10 +1173,6 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Door split
-     */
-
     ctx.beginPath();
 
     ctx.moveTo(
@@ -1612,9 +1187,7 @@ function drawVehicle(
 
     ctx.stroke();
 
-    /*
-     * Tail lights
-     */
+    /* truck lights */
 
     ctx.shadowColor =
       "#ff4d62";
@@ -1648,9 +1221,7 @@ function drawVehicle(
 
     ctx.shadowBlur = 0;
 
-    /*
-     * Lower bumper
-     */
+    /* bumper */
 
     ctx.fillStyle =
       "#05090e";
@@ -1666,14 +1237,7 @@ function drawVehicle(
 
     ctx.fill();
 
-    ctx.strokeStyle =
-      "rgba(94,200,224,0.45)";
-
-    ctx.stroke();
-
-    /*
-     * Wheels
-     */
+    /* wheels */
 
     ctx.fillStyle =
       "#020407";
@@ -1707,52 +1271,65 @@ function drawVehicle(
     ctx.fill();
   }
 
-  /* ========================================================
-     BOOST GLOW
-  ======================================================== */
+  /* =====================================================
+     BOOST
+  ===================================================== */
 
   if (
     boost &&
-    speed > 15 &&
+    speed > 10 &&
     !gameOver
   ) {
-    const glow =
-      ctx.createRadialGradient(
+    const exhaust =
+      ctx.createLinearGradient(
+        -20,
         0,
-        16,
+        -95,
         0,
-        0,
-        16,
-        bodyWidth * 0.75,
       );
 
-    glow.addColorStop(
+    exhaust.addColorStop(
       0,
-      "rgba(84,226,255,0.18)",
+      "rgba(220,255,255,0.75)",
     );
 
-    glow.addColorStop(
+    exhaust.addColorStop(
+      0.25,
+      "rgba(72,220,255,0.55)",
+    );
+
+    exhaust.addColorStop(
       1,
-      "rgba(84,226,255,0)",
+      "rgba(40,180,255,0)",
     );
 
-    ctx.fillStyle =
-      glow;
+    ctx.fillStyle = exhaust;
 
-    ctx.fillRect(
-      -bodyWidth,
-      -10,
-      bodyWidth * 2,
-      60,
+    ctx.beginPath();
+
+    ctx.ellipse(
+      -55,
+      8,
+      42 +
+        Math.min(
+          30,
+          speed * 0.12,
+        ),
+      7,
+      0,
+      0,
+      Math.PI * 2,
     );
+
+    ctx.fill();
   }
 
   ctx.restore();
 }
 
-/* ============================================================
-   MAIN CANVAS
-============================================================ */
+/* =========================================================
+   MAIN GAME CANVAS
+========================================================= */
 
 export default function GameCanvas({
   state,
@@ -1760,9 +1337,7 @@ export default function GameCanvas({
   height,
 }: Props) {
   const canvasRef =
-    useRef<HTMLCanvasElement>(
-      null,
-    );
+    useRef<HTMLCanvasElement>(null);
 
   const stateRef =
     useRef(state);
@@ -1785,8 +1360,7 @@ export default function GameCanvas({
     const canvas =
       canvasRef.current;
 
-    if (!canvas)
-      return;
+    if (!canvas) return;
 
     const ctx =
       canvas.getContext(
@@ -1796,8 +1370,7 @@ export default function GameCanvas({
         },
       );
 
-    if (!ctx)
-      return;
+    if (!ctx) return;
 
     let animationFrame = 0;
 
@@ -1805,54 +1378,46 @@ export default function GameCanvas({
 
     let lastTime = 0;
 
-    const resize =
-      () => {
-        const dpr =
-          Math.min(
-            window.devicePixelRatio ||
-              1,
-            2,
-          );
-
-        const w =
-          dimensionsRef.current
-            .width;
-
-        const h =
-          dimensionsRef.current
-            .height;
-
-        canvas.width =
-          Math.max(
-            1,
-            Math.floor(
-              w * dpr,
-            ),
-          );
-
-        canvas.height =
-          Math.max(
-            1,
-            Math.floor(
-              h * dpr,
-            ),
-          );
-
-        canvas.style.width =
-          `${w}px`;
-
-        canvas.style.height =
-          `${h}px`;
-
-        ctx.setTransform(
-          dpr,
-          0,
-          0,
-          dpr,
-          0,
-          0,
+    const resize = () => {
+      const dpr =
+        Math.min(
+          window.devicePixelRatio || 1,
+          2,
         );
-      };
+
+      const w =
+        dimensionsRef.current.width;
+
+      const h =
+        dimensionsRef.current.height;
+
+      canvas.width =
+        Math.max(
+          1,
+          Math.floor(w * dpr),
+        );
+
+      canvas.height =
+        Math.max(
+          1,
+          Math.floor(h * dpr),
+        );
+
+      canvas.style.width =
+        `${w}px`;
+
+      canvas.style.height =
+        `${h}px`;
+
+      ctx.setTransform(
+        dpr,
+        0,
+        0,
+        dpr,
+        0,
+        0,
+      );
+    };
 
     const render = (
       now: number,
@@ -1870,8 +1435,7 @@ export default function GameCanvas({
             )
           : 16;
 
-      lastTime =
-        now;
+      lastTime = now;
 
       time += delta;
 
@@ -1879,12 +1443,10 @@ export default function GameCanvas({
         stateRef.current;
 
       const w =
-        dimensionsRef.current
-          .width;
+        dimensionsRef.current.width;
 
       const h =
-        dimensionsRef.current
-          .height;
+        dimensionsRef.current.height;
 
       if (
         w <= 0 ||
@@ -1917,9 +1479,9 @@ export default function GameCanvas({
         h,
       );
 
-      /* ====================================================
+      /* ===================================================
          SKY
-      ==================================================== */
+      =================================================== */
 
       const sky =
         ctx.createLinearGradient(
@@ -1931,17 +1493,17 @@ export default function GameCanvas({
 
       sky.addColorStop(
         0,
-        "#020509",
+        "#030609",
       );
 
       sky.addColorStop(
         0.38,
-        "#07111a",
+        "#07121b",
       );
 
       sky.addColorStop(
-        0.68,
-        "#0a1821",
+        0.65,
+        "#0a1923",
       );
 
       sky.addColorStop(
@@ -1949,8 +1511,7 @@ export default function GameCanvas({
         "#020507",
       );
 
-      ctx.fillStyle =
-        sky;
+      ctx.fillStyle = sky;
 
       ctx.fillRect(
         0,
@@ -1959,35 +1520,34 @@ export default function GameCanvas({
         h,
       );
 
-      /* atmospheric center glow */
+      /* atmospheric glow */
 
-      const atmosphericGlow =
+      const glow =
         ctx.createRadialGradient(
           center,
-          horizon * 0.72,
+          horizon * 0.75,
           0,
           center,
-          horizon * 0.72,
+          horizon * 0.75,
           w * 0.55,
         );
 
-      atmosphericGlow.addColorStop(
+      glow.addColorStop(
         0,
-        "rgba(46,160,195,0.17)",
+        "rgba(45,165,205,0.16)",
       );
 
-      atmosphericGlow.addColorStop(
+      glow.addColorStop(
         0.4,
-        "rgba(21,90,119,0.08)",
+        "rgba(25,100,130,0.07)",
       );
 
-      atmosphericGlow.addColorStop(
+      glow.addColorStop(
         1,
         "rgba(0,0,0,0)",
       );
 
-      ctx.fillStyle =
-        atmosphericGlow;
+      ctx.fillStyle = glow;
 
       ctx.fillRect(
         0,
@@ -1996,20 +1556,13 @@ export default function GameCanvas({
         h * 0.75,
       );
 
-      /* ====================================================
-         SMALL ATMOSPHERIC PARTICLES
-      ==================================================== */
+      /* tiny atmospheric particles */
 
-      for (
-        let i = 0;
-        i < 55;
-        i++
-      ) {
+      for (let i = 0; i < 55; i++) {
         const px =
           (i * 173.7 +
             Math.sin(
-              time * 0.00025 +
-                i,
+              time * 0.00025 + i,
             ) *
               8) %
           w;
@@ -2021,13 +1574,13 @@ export default function GameCanvas({
         const alpha =
           0.05 +
           (Math.sin(
-            time * 0.0012 +
-              i,
+            time * 0.0012 + i,
           ) +
             1) *
             0.045;
 
-        ctx.fillStyle = `rgba(150,228,250,${alpha})`;
+        ctx.fillStyle =
+          `rgba(150,228,250,${alpha})`;
 
         ctx.fillRect(
           px,
@@ -2049,26 +1602,24 @@ export default function GameCanvas({
         s.bgOffset || 0,
       );
 
-      /* ====================================================
-         FOG
-      ==================================================== */
+      /* fog */
 
       const fog =
         ctx.createLinearGradient(
           0,
-          horizon - 50,
+          horizon - 45,
           0,
           horizon + 100,
         );
 
       fog.addColorStop(
         0,
-        "rgba(35,127,158,0)",
+        "rgba(30,120,150,0)",
       );
 
       fog.addColorStop(
         0.55,
-        "rgba(62,188,218,0.10)",
+        "rgba(55,185,215,0.10)",
       );
 
       fog.addColorStop(
@@ -2076,55 +1627,100 @@ export default function GameCanvas({
         "rgba(4,13,20,0)",
       );
 
-      ctx.fillStyle =
-        fog;
+      ctx.fillStyle = fog;
 
       ctx.fillRect(
         0,
-        horizon - 50,
+        horizon - 45,
         w,
-        150,
+        145,
       );
 
-      /* ====================================================
-         ROAD
-      ==================================================== */
+      /* road */
 
       drawRoad(
         ctx,
         w,
         h,
         horizon,
-        speed,
         s.roadOffset || 0,
         boost,
       );
 
-      /* ====================================================
-         ENGINE PARTICLES
-      ==================================================== */
+      /* side speed lights */
 
-      for (const particle of
-        s.particles ||
-        []) {
+      for (let i = 0; i < 10; i++) {
+        const p =
+          ((i / 10) +
+            (((s.roadOffset || 0) *
+              0.0012) %
+              1)) %
+          1;
+
+        const y =
+          horizon +
+          Math.pow(p, 1.65) *
+            (h - horizon);
+
+        const roadHalf =
+          w *
+          (0.045 +
+            p * 0.63);
+
+        const len =
+          5 +
+          p * 22;
+
+        ctx.strokeStyle =
+          `rgba(67,205,242,${0.08 + p * 0.25})`;
+
+        ctx.lineWidth =
+          1 +
+          p * 1.4;
+
+        for (const side of [-1, 1]) {
+          ctx.beginPath();
+
+          ctx.moveTo(
+            center +
+              side *
+                (roadHalf + 4),
+            y,
+          );
+
+          ctx.lineTo(
+            center +
+              side *
+                (roadHalf +
+                  4 +
+                  len),
+            y +
+              len * 0.4,
+          );
+
+          ctx.stroke();
+        }
+      }
+
+      /* engine particles */
+
+      for (const p of s.particles || []) {
         const life =
           Math.max(
             0,
             Math.min(
               1,
-              particle.life,
+              p.life,
             ),
           );
 
         const px =
-          center +
-          (particle.x || 0) *
-            0.25;
+          w * 0.19 +
+          (p.x || 0) * 0.22;
 
         const py =
           h * 0.72 +
-          (particle.y || 0) *
-            0.28;
+          (p.y || 0) * 0.28;
 
         ctx.save();
 
@@ -2132,14 +1728,15 @@ export default function GameCanvas({
           life * 0.65;
 
         ctx.fillStyle =
-          particle.color ||
-          CYAN;
+          p.color || CYAN;
 
         ctx.shadowColor =
-          particle.color ||
-          CYAN;
+          p.color || CYAN;
 
-        ctx.shadowBlur = 7;
+        ctx.shadowBlur =
+          p.type === "spark"
+            ? 10
+            : 5;
 
         ctx.beginPath();
 
@@ -2148,9 +1745,7 @@ export default function GameCanvas({
           py,
           Math.max(
             1,
-            (particle.size ||
-              2) *
-              0.75,
+            (p.size || 2) * 0.8,
           ),
           0,
           Math.PI * 2,
@@ -2161,36 +1756,44 @@ export default function GameCanvas({
         ctx.restore();
       }
 
-      /* ====================================================
-         PLAYER VEHICLE
+      /* ===================================================
+         VEHICLE POSITION — FIXED
+         
+         x = 19% of screen
+         y = 84% of screen
 
-         CENTERED + LOW FOREGROUND.
-         This is what prevents the vehicle from hiding
-         behind the typing target.
-      ==================================================== */
+         This keeps vehicle completely OUTSIDE
+         the centered Current Target panel.
+      =================================================== */
 
       const vehicleX =
-        center;
+        w *
+        (
+          0.19 +
+          Math.sin(
+            time * 0.00065,
+          ) *
+            0.002
+        );
 
       const vehicleY =
-        h * 0.875;
+        h *
+        0.84;
 
       ctx.save();
 
-      if (
-        s.shake > 0
-      ) {
+      if (s.shake > 0) {
         ctx.translate(
           Math.sin(
             time * 0.08,
           ) *
             s.shake *
-            0.15,
+            0.20,
           Math.cos(
             time * 0.1,
           ) *
             s.shake *
-            0.10,
+            0.14,
         );
       }
 
@@ -2207,52 +1810,7 @@ export default function GameCanvas({
 
       ctx.restore();
 
-      /* ====================================================
-         FOREGROUND VEHICLE LIGHT
-      ==================================================== */
-
-      if (
-        speed > 15 &&
-        !s.gameOver
-      ) {
-        const glow =
-          ctx.createRadialGradient(
-            vehicleX,
-            vehicleY,
-            0,
-            vehicleX,
-            vehicleY,
-            w * 0.22,
-          );
-
-        glow.addColorStop(
-          0,
-          boost
-            ? "rgba(68,221,255,0.10)"
-            : "rgba(58,180,215,0.045)",
-        );
-
-        glow.addColorStop(
-          1,
-          "rgba(0,0,0,0)",
-        );
-
-        ctx.fillStyle =
-          glow;
-
-        ctx.fillRect(
-          vehicleX -
-            w * 0.22,
-          vehicleY -
-            h * 0.14,
-          w * 0.44,
-          h * 0.28,
-        );
-      }
-
-      /* ====================================================
-         VIGNETTE
-      ==================================================== */
+      /* vignette */
 
       const vignette =
         ctx.createRadialGradient(
@@ -2279,7 +1837,7 @@ export default function GameCanvas({
 
       vignette.addColorStop(
         1,
-        "rgba(0,0,0,0.72)",
+        "rgba(0,0,0,0.70)",
       );
 
       ctx.fillStyle =
@@ -2292,9 +1850,7 @@ export default function GameCanvas({
         h,
       );
 
-      /* ====================================================
-         FRAME
-      ==================================================== */
+      /* frame */
 
       ctx.strokeStyle =
         "rgba(120,222,244,0.08)";
@@ -2308,14 +1864,12 @@ export default function GameCanvas({
         h - 21,
       );
 
-      /* ====================================================
-         TELEMETRY
-      ==================================================== */
+      /* bottom telemetry */
 
       ctx.save();
 
       ctx.globalAlpha =
-        0.36;
+        0.35;
 
       ctx.fillStyle =
         CYAN;
@@ -2348,9 +1902,7 @@ export default function GameCanvas({
 
       ctx.restore();
 
-      /* ====================================================
-         PAUSE / GAME OVER
-      ==================================================== */
+      /* pause / game over */
 
       if (
         s.paused ||
@@ -2376,9 +1928,7 @@ export default function GameCanvas({
           118;
 
         const panelX =
-          (w -
-            panelW) /
-          2;
+          (w - panelW) / 2;
 
         const panelY =
           h * 0.39;
@@ -2409,8 +1959,6 @@ export default function GameCanvas({
         ctx.strokeStyle =
           "rgba(123,231,255,0.35)";
 
-        ctx.lineWidth = 1;
-
         ctx.stroke();
 
         ctx.textAlign =
@@ -2423,7 +1971,7 @@ export default function GameCanvas({
           "600 11px ui-monospace, SFMono-Regular, Menlo, monospace";
 
         ctx.fillText(
-          "MOTO TYPE RACER  /  COCKPIT",
+          "MOTO TYPE RACER / COCKPIT",
           w / 2,
           panelY + 28,
         );
