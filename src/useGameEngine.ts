@@ -974,16 +974,16 @@ export function useGameEngine() {
                     stat,
                 },
 
-                // Immediate speed response on every correct keystroke.
+                // STRONG IMMEDIATE THROTTLE RESPONSE
                 bikeSpeed:
                   Math.min(
                     targetSpeed,
                     prev.bikeSpeed +
                       Math.max(
-                        10,
+                        18,
                         (targetSpeed -
                           prev.bikeSpeed) *
-                          0.35
+                          0.65
                       )
                   ),
 
@@ -1136,16 +1136,16 @@ export function useGameEngine() {
                 },
               },
 
-              // Immediate speed response on every correct keystroke.
+              // STRONG IMMEDIATE THROTTLE RESPONSE
               bikeSpeed:
                 Math.min(
                   targetSpeedRef.current,
                   prev.bikeSpeed +
                     Math.max(
-                      10,
+                      18,
                       (targetSpeedRef.current -
                         prev.bikeSpeed) *
-                        0.35
+                        0.65
                     )
                 ),
 
@@ -1189,9 +1189,7 @@ export function useGameEngine() {
             return prev;
           }
 
-          // IMPORTANT:
           // Once game is over, freeze gameplay stats.
-          // Only particles/shake are allowed to finish.
           if (
             prev.gameOver
           ) {
