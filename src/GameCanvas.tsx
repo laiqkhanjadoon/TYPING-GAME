@@ -20,13 +20,42 @@ function roundedRect(
   height: number,
   radius: number,
 ) {
-  const r = Math.min(radius, width / 2, height / 2);
+  const r = Math.min(
+    radius,
+    width / 2,
+    height / 2,
+  );
+
   ctx.beginPath();
   ctx.moveTo(x + r, y);
-  ctx.arcTo(x + width, y, x + width, y + height, r);
-  ctx.arcTo(x + width, y + height, x, y + height, r);
-  ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
+  ctx.arcTo(
+    x + width,
+    y,
+    x + width,
+    y + height,
+    r,
+  );
+  ctx.arcTo(
+    x + width,
+    y + height,
+    x,
+    y + height,
+    r,
+  );
+  ctx.arcTo(
+    x,
+    y + height,
+    x,
+    y,
+    r,
+  );
+  ctx.arcTo(
+    x,
+    y,
+    x + width,
+    y,
+    r,
+  );
   ctx.closePath();
 }
 
@@ -36,13 +65,15 @@ function polygon(
 ) {
   ctx.beginPath();
 
-  points.forEach(([x, y], index) => {
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
+  points.forEach(
+    ([x, y], index) => {
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    },
+  );
 
   ctx.closePath();
 }
@@ -54,12 +85,13 @@ function drawCity(
   time: number,
   offset: number,
 ) {
-  const haze = ctx.createLinearGradient(
-    0,
-    horizon - 100,
-    0,
-    horizon + 35,
-  );
+  const haze =
+    ctx.createLinearGradient(
+      0,
+      horizon - 100,
+      0,
+      horizon + 35,
+    );
 
   haze.addColorStop(
     0,
@@ -113,8 +145,11 @@ function drawCity(
         (0.10 + (i % 3) * 0.035)) %
       (w + 100);
 
-    const bw = w * widthFactor;
-    const bh = horizon * heightFactor;
+    const bw =
+      w * widthFactor;
+
+    const bh =
+      horizon * heightFactor;
 
     const x =
       ((fraction * w -
@@ -124,7 +159,8 @@ function drawCity(
         (w + 100)) -
       50;
 
-    const y = horizon - bh;
+    const y =
+      horizon - bh;
 
     const facade =
       ctx.createLinearGradient(
@@ -182,15 +218,17 @@ function drawCity(
       );
     }
 
-    const cols = Math.max(
-      2,
-      Math.floor(bw / 11),
-    );
+    const cols =
+      Math.max(
+        2,
+        Math.floor(bw / 11),
+      );
 
-    const rows = Math.max(
-      2,
-      Math.floor(bh / 13),
-    );
+    const rows =
+      Math.max(
+        2,
+        Math.floor(bh / 13),
+      );
 
     for (
       let row = 0;
@@ -214,7 +252,7 @@ function drawCity(
         const alpha =
           0.16 +
           (Math.sin(
-            time * 0.002 +
+            time * 0.0012 +
               i +
               row,
           ) +
@@ -241,7 +279,11 @@ function drawCity(
     }
   }
 
-  for (let i = 0; i < 4; i++) {
+  for (
+    let i = 0;
+    i < 4;
+    i++
+  ) {
     const x =
       w *
         (0.18 + i * 0.21) +
@@ -298,9 +340,14 @@ function drawRoad(
   time: number,
   boost: boolean,
 ) {
-  const cx = w * 0.5;
-  const topHalf = w * 0.045;
-  const bottomHalf = w * 0.68;
+  const cx =
+    w * 0.5;
+
+  const topHalf =
+    w * 0.045;
+
+  const bottomHalf =
+    w * 0.68;
 
   const ground =
     ctx.createLinearGradient(
@@ -364,7 +411,11 @@ function drawRoad(
 
   ctx.fill();
 
-  for (let i = 0; i < 24; i++) {
+  for (
+    let i = 0;
+    i < 24;
+    i++
+  ) {
     const p =
       ((i / 24) +
         ((roadOffset * 0.0007) %
@@ -401,7 +452,9 @@ function drawRoad(
     ctx.stroke();
   }
 
-  for (const side of [-1, 1]) {
+  for (
+    const side of [-1, 1]
+  ) {
     const edge =
       ctx.createLinearGradient(
         0,
@@ -427,7 +480,8 @@ function drawRoad(
       "rgba(63,165,210,0.15)",
     );
 
-    ctx.strokeStyle = edge;
+    ctx.strokeStyle =
+      edge;
 
     ctx.lineWidth =
       Math.max(
@@ -435,7 +489,8 @@ function drawRoad(
         w * 0.0024,
       );
 
-    ctx.shadowColor = CYAN;
+    ctx.shadowColor =
+      CYAN;
 
     ctx.shadowBlur =
       boost ? 18 : 10;
@@ -496,7 +551,8 @@ function drawRoad(
     ctx.fillStyle =
       `rgba(168,230,244,${alpha})`;
 
-    ctx.shadowColor = CYAN;
+    ctx.shadowColor =
+      CYAN;
 
     ctx.shadowBlur =
       p > 0.55 ? 7 : 0;
@@ -520,7 +576,11 @@ function drawRoad(
   ctx.globalCompositeOperation =
     "screen";
 
-  for (let i = 0; i < 16; i++) {
+  for (
+    let i = 0;
+    i < 16;
+    i++
+  ) {
     const p =
       ((i / 16) +
         ((roadOffset * 0.0009) %
@@ -573,7 +633,8 @@ function drawRoad(
       "rgba(83,225,255,0)",
     );
 
-    ctx.fillStyle = streak;
+    ctx.fillStyle =
+      streak;
 
     ctx.fillRect(
       x - streakW,
@@ -610,7 +671,8 @@ function drawRoad(
     "rgba(0,0,0,0)",
   );
 
-  ctx.fillStyle = glow;
+  ctx.fillStyle =
+    glow;
 
   ctx.fillRect(
     0,
@@ -622,28 +684,15 @@ function drawRoad(
 
 /*
  * ============================================================
- * PREMIUM VEHICLE RENDERER
+ * THIRD-PERSON VEHICLE
  * ============================================================
  *
- * IMPORTANT:
+ * FRONT = TOP
+ * REAR  = BOTTOM
  *
- * All vehicle artwork is created with its FRONT pointing
- * toward +X.
+ * No rotation is used.
  *
- * Canvas +Y points downward.
- *
- * We rotate the complete vehicle -90 degrees:
- *
- *       +X  --->  UP / HORIZON
- *
- * This means every vehicle now faces forward into the road.
- *
- * Bike
- * Sports Car
- * Supercar
- * Truck
- *
- * all use the same forward direction.
+ * The player is following the vehicle down the road.
  */
 
 function drawVehicle(
@@ -656,91 +705,66 @@ function drawVehicle(
   time: number,
   crashed: boolean,
 ) {
-  const scale = Math.max(
-    0.72,
-    Math.min(
-      1.35,
+  const scale =
+    Math.max(
+      0.9,
       Math.min(
-        window.innerWidth,
-        window.innerHeight,
-      ) / 760,
-    ),
-  );
+        1.42,
+        Math.min(
+          window.innerWidth,
+          window.innerHeight,
+        ) / 650,
+      ),
+    );
 
   ctx.save();
 
-  ctx.translate(x, y);
+  ctx.translate(
+    x,
+    y,
+  );
 
   ctx.scale(
     scale,
     scale,
   );
 
-  const sway =
+  const lean =
     Math.sin(
       time * 0.0018,
     ) *
     Math.min(
-      3,
-      speed / 80,
+      2.5,
+      speed / 100,
     );
 
   ctx.translate(
-    sway,
+    lean,
     Math.sin(
       time * 0.006,
     ) *
       Math.min(
-        1.5,
-        speed / 120,
+        1.4,
+        speed / 90,
       ),
-  );
-
-  /*
-   * THE IMPORTANT FIX
-   *
-   * Vehicle front = +X
-   * Road forward = -Y
-   *
-   * Rotating -90 degrees makes +X become -Y.
-   */
-  ctx.rotate(
-    -Math.PI / 2,
   );
 
   if (crashed) {
     ctx.rotate(
-      Math.min(
-        1.2,
-        time * 0.0008,
-      ),
+      Math.sin(
+        time * 0.012,
+      ) * 0.035,
     );
   }
 
-  const bike =
+  const isBike =
     vehicle === "bike";
 
-  const truck =
+  const isTruck =
     vehicle === "truck";
 
-  const bodyW =
-    bike
-      ? 52
-      : truck
-        ? 84
-        : 76;
-
-  const bodyColor =
-    vehicle === "sports-car"
-      ? "#d84b55"
-      : vehicle === "supercar"
-        ? "#6e70d9"
-        : vehicle === "truck"
-          ? "#397da4"
-          : "#263f52";
-
   /*
-   * Ground shadow
+   * ROAD CONTACT SHADOW
    */
 
   ctx.save();
@@ -748,18 +772,23 @@ function drawVehicle(
   const shadow =
     ctx.createRadialGradient(
       0,
-      26,
-      2,
+      34,
+      4,
       0,
-      26,
-      bodyW * 1.45,
+      34,
+      isBike ? 48 : 72,
     );
 
   shadow.addColorStop(
     0,
     boost
-      ? "rgba(58,220,255,0.25)"
-      : "rgba(25,146,185,0.17)",
+      ? "rgba(50,220,255,0.25)"
+      : "rgba(0,0,0,0.62)",
+  );
+
+  shadow.addColorStop(
+    0.55,
+    "rgba(0,0,0,0.30)",
   );
 
   shadow.addColorStop(
@@ -767,15 +796,16 @@ function drawVehicle(
     "rgba(0,0,0,0)",
   );
 
-  ctx.fillStyle = shadow;
+  ctx.fillStyle =
+    shadow;
 
   ctx.beginPath();
 
   ctx.ellipse(
     0,
-    28,
-    bodyW * 1.45,
-    bike ? 22 : 19,
+    38,
+    isBike ? 36 : 62,
+    isBike ? 13 : 17,
     0,
     0,
     Math.PI * 2,
@@ -786,7 +816,7 @@ function drawVehicle(
   ctx.restore();
 
   /*
-   * Speed trails BEHIND vehicle.
+   * SPEED TRAILS
    */
 
   if (
@@ -795,62 +825,73 @@ function drawVehicle(
   ) {
     ctx.save();
 
-    ctx.globalAlpha =
+    const intensity =
       Math.min(
-        0.5,
-        speed / 300,
+        0.65,
+        speed / 260,
       );
 
     for (
       let i = 0;
-      i < 7;
+      i < 8;
       i++
     ) {
+      const side =
+        i % 2 === 0
+          ? -1
+          : 1;
+
       const yy =
-        -4 + i * 7;
+        8 +
+        (i % 4) * 8;
 
       const length =
-        16 +
+        14 +
         ((i * 17 +
-          time * 0.13) %
-          40) *
-          (speed / 120);
+          time * 0.12) %
+          42) *
+          (0.55 + speed / 220);
 
-      const trail =
+      const xx =
+        side *
+        (isBike ? 15 : 28);
+
+      const streak =
         ctx.createLinearGradient(
-          -bodyW - length,
+          xx,
           yy,
-          -bodyW,
-          yy,
+          xx + side * length,
+          yy + 5,
         );
 
-      trail.addColorStop(
+      streak.addColorStop(
         0,
-        "rgba(74,222,255,0)",
+        `rgba(80,220,255,${intensity})`,
       );
 
-      trail.addColorStop(
+      streak.addColorStop(
         1,
-        "rgba(74,222,255,0.8)",
+        "rgba(80,220,255,0)",
       );
 
-      ctx.strokeStyle = trail;
+      ctx.strokeStyle =
+        streak;
 
       ctx.lineWidth =
-        i % 2
-          ? 1
-          : 1.8;
+        i % 2 === 0
+          ? 1.6
+          : 1;
 
       ctx.beginPath();
 
       ctx.moveTo(
-        -bodyW - length,
+        xx,
         yy,
       );
 
       ctx.lineTo(
-        -bodyW,
-        yy,
+        xx + side * length,
+        yy + 5,
       );
 
       ctx.stroke();
@@ -865,280 +906,284 @@ function drawVehicle(
    * ============================================================
    */
 
-  if (bike) {
-    const wheel = (
-      wx: number,
-      radius: number,
-    ) => {
-      ctx.save();
-
-      ctx.translate(
-        wx,
-        16,
-      );
-
-      ctx.rotate(
-        time *
-          Math.max(
-            0.004,
-            speed * 0.0008,
-          ),
-      );
-
-      ctx.fillStyle =
-        "#030609";
-
-      ctx.beginPath();
-
-      ctx.ellipse(
-        0,
-        0,
-        radius * 0.72,
-        radius,
-        -0.1,
-        0,
-        Math.PI * 2,
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        "#8babb9";
-
-      ctx.lineWidth = 2;
-
-      ctx.stroke();
-
-      ctx.strokeStyle =
-        "rgba(117,236,255,0.7)";
-
-      ctx.lineWidth = 1;
-
-      for (
-        let i = 0;
-        i < 6;
-        i++
-      ) {
-        const a =
-          (Math.PI * 2 * i) /
-          6;
-
-        ctx.beginPath();
-
-        ctx.moveTo(
-          0,
-          0,
-        );
-
-        ctx.lineTo(
-          Math.cos(a) *
-            radius *
-            0.65,
-          Math.sin(a) *
-            radius *
-            0.65,
-        );
-
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    };
-
+  if (isBike) {
     /*
-     * Rear wheel
-     */
-    wheel(
-      -24,
-      14,
-    );
-
-    /*
-     * Front wheel
-     */
-    wheel(
-      23,
-      13,
-    );
-
-    /*
-     * Frame
+     * REAR WHEEL
      */
 
-    polygon(ctx, [
-      [-25, 13],
-      [-13, -2],
-      [4, -8],
-      [24, 5],
-      [19, 13],
-      [1, 8],
-      [-14, 14],
-    ]);
+    ctx.save();
 
-    const frame =
-      ctx.createLinearGradient(
-        -15,
-        -10,
-        18,
-        14,
-      );
+    ctx.shadowColor =
+      "rgba(0,0,0,0.8)";
 
-    frame.addColorStop(
-      0,
-      "#dce8ef",
-    );
-
-    frame.addColorStop(
-      0.4,
-      "#426577",
-    );
-
-    frame.addColorStop(
-      1,
-      "#111c27",
-    );
-
-    ctx.fillStyle = frame;
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      "rgba(165,239,255,0.75)";
-
-    ctx.lineWidth = 1.2;
-
-    ctx.stroke();
-
-    /*
-     * Fuel tank
-     */
-
-    polygon(ctx, [
-      [-8, -9],
-      [2, -17],
-      [17, -12],
-      [14, -3],
-      [1, 1],
-      [-9, -2],
-    ]);
-
-    const tank =
-      ctx.createLinearGradient(
-        0,
-        -18,
-        10,
-        0,
-      );
-
-    tank.addColorStop(
-      0,
-      "#d8f7ff",
-    );
-
-    tank.addColorStop(
-      0.16,
-      boost
-        ? "#4cdcf4"
-        : "#3a8ca8",
-    );
-
-    tank.addColorStop(
-      0.55,
-      "#1b3344",
-    );
-
-    tank.addColorStop(
-      1,
-      "#050b11",
-    );
-
-    ctx.fillStyle = tank;
-
-    ctx.fill();
-
-    ctx.strokeStyle =
-      "rgba(174,246,255,0.8)";
-
-    ctx.stroke();
-
-    /*
-     * Seat
-     */
+    ctx.shadowBlur = 12;
 
     ctx.fillStyle =
-      "#060a10";
+      "#020407";
 
-    roundedRect(
-      ctx,
-      -14,
-      -7,
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      35,
+      9,
       17,
-      6,
-      3,
+      0,
+      0,
+      Math.PI * 2,
     );
 
     ctx.fill();
 
+    ctx.shadowBlur = 0;
+
+    ctx.strokeStyle =
+      "#6e8997";
+
+    ctx.lineWidth = 2;
+
+    ctx.stroke();
+
+    ctx.fillStyle =
+      "#172a36";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      35,
+      4,
+      10,
+      0,
+      0,
+      Math.PI * 2,
+    );
+
+    ctx.fill();
+
+    ctx.restore();
+
     /*
-     * Rider
+     * FRONT WHEEL
+     */
+
+    ctx.save();
+
+    ctx.fillStyle =
+      "#020407";
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      -42,
+      6,
+      13,
+      0,
+      0,
+      Math.PI * 2,
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "#7794a1";
+
+    ctx.lineWidth = 1.6;
+
+    ctx.stroke();
+
+    ctx.restore();
+
+    /*
+     * BIKE BODY
+     */
+
+    const rearBody =
+      ctx.createLinearGradient(
+        -22,
+        -5,
+        22,
+        38,
+      );
+
+    rearBody.addColorStop(
+      0,
+      "#56798a",
+    );
+
+    rearBody.addColorStop(
+      0.25,
+      boost
+        ? "#2ebcd6"
+        : "#284758",
+    );
+
+    rearBody.addColorStop(
+      0.72,
+      "#0b1721",
+    );
+
+    rearBody.addColorStop(
+      1,
+      "#03070b",
+    );
+
+    polygon(ctx, [
+      [-10, -8],
+      [10, -8],
+      [19, 22],
+      [14, 34],
+      [-14, 34],
+      [-19, 22],
+    ]);
+
+    ctx.fillStyle =
+      rearBody;
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "rgba(128,231,249,0.8)";
+
+    ctx.lineWidth = 1.3;
+
+    ctx.stroke();
+
+    /*
+     * TAIL SECTION
      */
 
     polygon(ctx, [
-      [-11, -9],
-      [-9, -22],
-      [1, -26],
-      [9, -18],
-      [7, -7],
-      [-2, -3],
+      [-13, 13],
+      [13, 13],
+      [10, 31],
+      [-10, 31],
+    ]);
+
+    ctx.fillStyle =
+      "rgba(7,14,20,0.85)";
+
+    ctx.fill();
+
+    /*
+     * RIDER
+     */
+
+    polygon(ctx, [
+      [-11, -4],
+      [-8, -25],
+      [0, -34],
+      [8, -25],
+      [11, -4],
+      [6, 10],
+      [-6, 10],
     ]);
 
     const suit =
       ctx.createLinearGradient(
         -10,
-        -26,
-        8,
-        -4,
+        -32,
+        10,
+        12,
       );
 
     suit.addColorStop(
       0,
-      "#dce8ed",
+      "#9bb8c4",
     );
 
     suit.addColorStop(
-      0.28,
-      "#283d4c",
+      0.18,
+      "#314b5a",
+    );
+
+    suit.addColorStop(
+      0.65,
+      "#0d1b25",
     );
 
     suit.addColorStop(
       1,
-      "#070b11",
+      "#050a0f",
     );
 
-    ctx.fillStyle = suit;
+    ctx.fillStyle =
+      suit;
 
     ctx.fill();
 
     ctx.strokeStyle =
-      "rgba(122,228,247,0.55)";
+      "rgba(115,231,248,0.45)";
 
     ctx.stroke();
 
     /*
-     * Helmet
+     * HELMET
      */
 
     ctx.fillStyle =
-      "#05080d";
+      "#060a0f";
 
     ctx.beginPath();
 
     ctx.ellipse(
-      4,
-      -27,
-      8,
-      8.5,
-      -0.2,
+      0,
+      -31,
+      9,
+      10,
+      0,
+      0,
+      Math.PI * 2,
+    );
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "rgba(153,231,242,0.7)";
+
+    ctx.lineWidth = 1;
+
+    ctx.stroke();
+
+    /*
+     * HELMET REFLECTION
+     */
+
+    const helmetGlow =
+      ctx.createLinearGradient(
+        -7,
+        -39,
+        7,
+        -26,
+      );
+
+    helmetGlow.addColorStop(
+      0,
+      "rgba(195,248,255,0.75)",
+    );
+
+    helmetGlow.addColorStop(
+      0.25,
+      "rgba(72,154,177,0.35)",
+    );
+
+    helmetGlow.addColorStop(
+      1,
+      "rgba(0,0,0,0)",
+    );
+
+    ctx.fillStyle =
+      helmetGlow;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      0,
+      -33,
+      7,
+      5,
+      0,
       0,
       Math.PI * 2,
     );
@@ -1146,152 +1191,127 @@ function drawVehicle(
     ctx.fill();
 
     /*
-     * Visor
+     * BIKE FRAME
      */
 
-    const visor =
+    ctx.strokeStyle =
+      "rgba(128,229,247,0.8)";
+
+    ctx.lineWidth = 1.8;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -13,
+      25,
+    );
+
+    ctx.lineTo(
+      0,
+      -11,
+    );
+
+    ctx.lineTo(
+      13,
+      25,
+    );
+
+    ctx.stroke();
+
+    /*
+     * REAR LIGHT
+     */
+
+    ctx.shadowColor =
+      "#ff5266";
+
+    ctx.shadowBlur = 18;
+
+    const rearLight =
       ctx.createLinearGradient(
-        -2,
-        -29,
+        -10,
+        0,
         10,
-        -25,
+        0,
       );
 
-    visor.addColorStop(
+    rearLight.addColorStop(
       0,
-      "#2c8196",
+      "#6b101c",
     );
 
-    visor.addColorStop(
+    rearLight.addColorStop(
+      0.5,
+      "#ff4057",
+    );
+
+    rearLight.addColorStop(
       1,
-      "#b7fbff",
+      "#6b101c",
     );
 
-    ctx.fillStyle = visor;
+    ctx.fillStyle =
+      rearLight;
 
     roundedRect(
       ctx,
-      0,
-      -30,
-      9,
+      -9,
+      23,
+      18,
       4,
       2,
     );
 
     ctx.fill();
 
+    ctx.shadowBlur = 0;
+
     /*
-     * Handlebar
+     * INDICATORS
      */
 
-    ctx.strokeStyle =
-      "#c3d5dd";
+    ctx.fillStyle =
+      "#ffb84a";
 
-    ctx.lineWidth = 2;
+    ctx.shadowColor =
+      "#ffb84a";
 
-    ctx.beginPath();
+    ctx.shadowBlur = 7;
 
-    ctx.moveTo(
+    ctx.fillRect(
+      -17,
+      20,
+      3,
+      3,
+    );
+
+    ctx.fillRect(
       14,
-      -7,
+      20,
+      3,
+      3,
     );
 
-    ctx.lineTo(
-      23,
-      -10,
-    );
-
-    ctx.lineTo(
-      27,
-      -7,
-    );
-
-    ctx.stroke();
+    ctx.shadowBlur = 0;
 
     /*
-     * Front fork
+     * FRONT LIGHT
      */
 
-    ctx.strokeStyle =
-      "#90b7c6";
+    ctx.fillStyle =
+      WHITE;
 
-    ctx.lineWidth = 3;
+    ctx.shadowColor =
+      WHITE;
+
+    ctx.shadowBlur = 10;
 
     ctx.beginPath();
 
-    ctx.moveTo(
-      17,
-      -5,
-    );
-
-    ctx.lineTo(
-      23,
-      12,
-    );
-
-    ctx.stroke();
-
-    /*
-     * ========================================================
-     * FRONT HEADLIGHT
-     * ========================================================
-     *
-     * Front is +X.
-     *
-     * After -90° rotation:
-     *
-     * +X -> UP
-     *
-     * So headlight points into road.
-     */
-
-    ctx.save();
-
-    const beam =
-      ctx.createRadialGradient(
-        28,
-        0,
-        1,
-        28,
-        0,
-        58,
-      );
-
-    beam.addColorStop(
+    ctx.arc(
       0,
-      "rgba(211,251,255,0.42)",
-    );
-
-    beam.addColorStop(
-      1,
-      "rgba(99,222,255,0)",
-    );
-
-    ctx.fillStyle = beam;
-
-    polygon(ctx, [
-      [22, -5],
-      [86, -28],
-      [86, 27],
-      [22, 5],
-    ]);
-
-    ctx.fill();
-
-    ctx.restore();
-
-    ctx.shadowColor = WHITE;
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = WHITE;
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-      25,
-      -3,
-      3.5,
+      -42,
       2.5,
-      0,
       0,
       Math.PI * 2,
     );
@@ -1301,254 +1321,515 @@ function drawVehicle(
     ctx.shadowBlur = 0;
 
     /*
-     * Rear brake light
+     * FRONT FORK
+     */
+
+    ctx.strokeStyle =
+      "#7898a7";
+
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -5,
+      -8,
+    );
+
+    ctx.lineTo(
+      -3,
+      -39,
+    );
+
+    ctx.moveTo(
+      5,
+      -8,
+    );
+
+    ctx.lineTo(
+      3,
+      -39,
+    );
+
+    ctx.stroke();
+
+  } else {
+    /*
+     * ==========================================================
+     * CARS / TRUCK
+     * ==========================================================
+     */
+
+    const bodyW =
+      isTruck
+        ? 88
+        : 82;
+
+    const bodyTop =
+      isTruck
+        ? -33
+        : -39;
+
+    const bodyBottom =
+      isTruck
+        ? 42
+        : 45;
+
+    const bodyColor =
+      vehicle === "sports-car"
+        ? "#d64c58"
+        : vehicle === "supercar"
+          ? "#6268d6"
+          : "#397da4";
+
+    /*
+     * MAIN BODY
+     */
+
+    const bodyGradient =
+      ctx.createLinearGradient(
+        0,
+        bodyTop,
+        0,
+        bodyBottom,
+      );
+
+    bodyGradient.addColorStop(
+      0,
+      "#b6d9e3",
+    );
+
+    bodyGradient.addColorStop(
+      0.10,
+      bodyColor,
+    );
+
+    bodyGradient.addColorStop(
+      0.45,
+      "#1c3442",
+    );
+
+    bodyGradient.addColorStop(
+      0.78,
+      "#0a141d",
+    );
+
+    bodyGradient.addColorStop(
+      1,
+      "#03070b",
+    );
+
+    polygon(ctx, [
+      [-bodyW * 0.30, bodyTop],
+      [bodyW * 0.30, bodyTop],
+      [bodyW * 0.47, -12],
+      [bodyW * 0.54, 24],
+      [bodyW * 0.46, bodyBottom],
+      [-bodyW * 0.46, bodyBottom],
+      [-bodyW * 0.54, 24],
+      [-bodyW * 0.47, -12],
+    ]);
+
+    ctx.fillStyle =
+      bodyGradient;
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "rgba(137,231,247,0.78)";
+
+    ctx.lineWidth = 1.5;
+
+    ctx.stroke();
+
+    /*
+     * REAR WINDOW
+     */
+
+    polygon(ctx, [
+      [-bodyW * 0.28, -31],
+      [bodyW * 0.28, -31],
+      [bodyW * 0.38, -7],
+      [-bodyW * 0.38, -7],
+    ]);
+
+    const cabin =
+      ctx.createLinearGradient(
+        0,
+        -32,
+        0,
+        -6,
+      );
+
+    cabin.addColorStop(
+      0,
+      "#7fb2c0",
+    );
+
+    cabin.addColorStop(
+      0.18,
+      "#284b5b",
+    );
+
+    cabin.addColorStop(
+      0.7,
+      "#091923",
+    );
+
+    cabin.addColorStop(
+      1,
+      "#04090e",
+    );
+
+    ctx.fillStyle =
+      cabin;
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "rgba(168,239,250,0.55)";
+
+    ctx.stroke();
+
+    /*
+     * WINDOW REFLECTION
+     */
+
+    const windowReflection =
+      ctx.createLinearGradient(
+        -20,
+        -29,
+        20,
+        -9,
+      );
+
+    windowReflection.addColorStop(
+      0,
+      "rgba(212,249,255,0.42)",
+    );
+
+    windowReflection.addColorStop(
+      0.32,
+      "rgba(89,179,204,0.12)",
+    );
+
+    windowReflection.addColorStop(
+      1,
+      "rgba(0,0,0,0)",
+    );
+
+    ctx.fillStyle =
+      windowReflection;
+
+    polygon(ctx, [
+      [-bodyW * 0.23, -28],
+      [0, -28],
+      [-bodyW * 0.04, -10],
+      [-bodyW * 0.31, -10],
+    ]);
+
+    ctx.fill();
+
+    /*
+     * REAR DECK
+     */
+
+    polygon(ctx, [
+      [-bodyW * 0.43, 0],
+      [bodyW * 0.43, 0],
+      [bodyW * 0.49, 23],
+      [-bodyW * 0.49, 23],
+    ]);
+
+    ctx.fillStyle =
+      "rgba(11,24,33,0.72)";
+
+    ctx.fill();
+
+    /*
+     * REAR BUMPER
+     */
+
+    polygon(ctx, [
+      [-bodyW * 0.49, 23],
+      [bodyW * 0.49, 23],
+      [bodyW * 0.45, 42],
+      [-bodyW * 0.45, 42],
+    ]);
+
+    ctx.fillStyle =
+      "#050b10";
+
+    ctx.fill();
+
+    ctx.strokeStyle =
+      "rgba(98,200,220,0.42)";
+
+    ctx.lineWidth = 1;
+
+    ctx.stroke();
+
+    /*
+     * FULL REAR LIGHT BAR
      */
 
     ctx.shadowColor =
-      "#ff5368";
+      "#ff4055";
 
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 18;
+
+    const tail =
+      ctx.createLinearGradient(
+        -bodyW * 0.44,
+        0,
+        bodyW * 0.44,
+        0,
+      );
+
+    tail.addColorStop(
+      0,
+      "rgba(255,52,75,0.18)",
+    );
+
+    tail.addColorStop(
+      0.15,
+      "#a82035",
+    );
+
+    tail.addColorStop(
+      0.5,
+      "#ff4b61",
+    );
+
+    tail.addColorStop(
+      0.85,
+      "#a82035",
+    );
+
+    tail.addColorStop(
+      1,
+      "rgba(255,52,75,0.18)",
+    );
 
     ctx.fillStyle =
-      "#ff5368";
+      tail;
 
     roundedRect(
       ctx,
-      -29,
-      4,
+      -bodyW * 0.42,
+      25,
+      bodyW * 0.84,
       5,
-      3,
-      1.5,
+      2.5,
     );
 
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-  } else {
     /*
-     * ========================================================
-     * SPORTS CAR / SUPERCAR / TRUCK
-     * ========================================================
+     * TAILLIGHT BLOCKS
      */
 
-    const top =
-      truck
-        ? -15
-        : -24;
+    ctx.fillStyle =
+      "#ff5969";
 
-    /*
-     * Main body
-     */
-
-    polygon(
+    roundedRect(
       ctx,
-      truck
-        ? [
-            [-42, 13],
-            [-42, -9],
-            [-24, -17],
-            [13, -17],
-            [25, -7],
-            [40, -5],
-            [43, 13],
-          ]
-        : [
-            [-40, 13],
-            [-34, -4],
-            [-18, -20],
-            [15, -21],
-            [33, -6],
-            [40, 13],
-          ],
+      -bodyW * 0.43,
+      23,
+      bodyW * 0.22,
+      7,
+      2,
     );
-
-    const body =
-      ctx.createLinearGradient(
-        0,
-        top,
-        0,
-        18,
-      );
-
-    body.addColorStop(
-      0,
-      "#d8f4fc",
-    );
-
-    body.addColorStop(
-      0.16,
-      bodyColor,
-    );
-
-    body.addColorStop(
-      0.58,
-      "#122330",
-    );
-
-    body.addColorStop(
-      1,
-      "#05090d",
-    );
-
-    ctx.fillStyle = body;
 
     ctx.fill();
 
-    ctx.strokeStyle =
-      "rgba(139,237,255,0.8)";
-
-    ctx.lineWidth = 1.4;
-
-    ctx.stroke();
-
-    /*
-     * Windshield / cabin
-     */
-
-    polygon(
+    roundedRect(
       ctx,
-      truck
-        ? [
-            [-19, -13],
-            [9, -13],
-            [9, -2],
-            [-20, -2],
-          ]
-        : [
-            [-16, -5],
-            [-9, -16],
-            [13, -16],
-            [25, -5],
-          ],
+      bodyW * 0.21,
+      23,
+      bodyW * 0.22,
+      7,
+      2,
     );
-
-    const glass =
-      ctx.createLinearGradient(
-        0,
-        -17,
-        0,
-        -2,
-      );
-
-    glass.addColorStop(
-      0,
-      "#9deaf7",
-    );
-
-    glass.addColorStop(
-      0.25,
-      "#24495a",
-    );
-
-    glass.addColorStop(
-      1,
-      "#07111a",
-    );
-
-    ctx.fillStyle = glass;
 
     ctx.fill();
 
-    ctx.strokeStyle =
-      "rgba(171,246,255,0.65)";
-
-    ctx.stroke();
-
     /*
-     * Wheels
+     * REAR DIFFUSER
      */
 
-    const wheel = (
-      wx: number,
-    ) => {
+    polygon(ctx, [
+      [-16, 31],
+      [16, 31],
+      [12, 43],
+      [-12, 43],
+    ]);
+
+    ctx.fillStyle =
+      "#020508";
+
+    ctx.fill();
+
+    /*
+     * EXHAUSTS
+     */
+
+    if (!isTruck) {
+      for (
+        const ex of [-12, 12]
+      ) {
+        ctx.fillStyle =
+          "#020304";
+
+        ctx.beginPath();
+
+        ctx.arc(
+          ex,
+          40,
+          4,
+          0,
+          Math.PI * 2,
+        );
+
+        ctx.fill();
+
+        ctx.strokeStyle =
+          "rgba(111,220,238,0.35)";
+
+        ctx.lineWidth = 1;
+
+        ctx.stroke();
+      }
+    }
+
+    /*
+     * REAR WHEELS
+     */
+
+    for (
+      const side of [-1, 1]
+    ) {
+      const wx =
+        side *
+        bodyW *
+        0.48;
+
       ctx.fillStyle =
-        "#020407";
+        "#010204";
 
-      ctx.beginPath();
-
-      ctx.ellipse(
-        wx,
-        14,
-        9,
+      roundedRect(
+        ctx,
+        wx - 7,
         12,
-        0,
-        0,
-        Math.PI * 2,
+        14,
+        27,
+        4,
       );
 
       ctx.fill();
 
       ctx.strokeStyle =
-        "#8da8b6";
+        "#536a76";
 
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.3;
 
       ctx.stroke();
 
       ctx.fillStyle =
-        "#263e4c";
+        "#182b35";
 
       ctx.beginPath();
 
-      ctx.arc(
+      ctx.ellipse(
         wx,
-        14,
+        27,
         4,
+        8,
+        0,
         0,
         Math.PI * 2,
       );
 
       ctx.fill();
-    };
-
-    wheel(-25);
-    wheel(25);
+    }
 
     /*
-     * Front headlights
-     *
-     * Front = +X
-     * Rotation = -90°
-     * Result = UP
+     * SIDE BODY HIGHLIGHTS
      */
 
-    ctx.shadowColor = WHITE;
-    ctx.shadowBlur = 13;
-    ctx.fillStyle = WHITE;
+    ctx.strokeStyle =
+      "rgba(116,225,244,0.34)";
 
-    roundedRect(
-      ctx,
-      34,
-      3,
-      5,
-      4,
-      1,
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -bodyW * 0.50,
+      -8,
     );
 
-    ctx.fill();
+    ctx.lineTo(
+      -bodyW * 0.56,
+      23,
+    );
 
-    ctx.shadowBlur = 0;
+    ctx.lineTo(
+      -bodyW * 0.46,
+      39,
+    );
+
+    ctx.moveTo(
+      bodyW * 0.50,
+      -8,
+    );
+
+    ctx.lineTo(
+      bodyW * 0.56,
+      23,
+    );
+
+    ctx.lineTo(
+      bodyW * 0.46,
+      39,
+    );
+
+    ctx.stroke();
 
     /*
-     * Rear light
+     * FRONT LIGHTS FAR AHEAD
      */
 
-    ctx.shadowColor =
-      "#ff5368";
-
-    ctx.shadowBlur = 10;
-
     ctx.fillStyle =
-      "#ff5368";
+      "rgba(204,249,255,0.8)";
 
-    roundedRect(
-      ctx,
-      -41,
+    ctx.shadowColor =
+      WHITE;
+
+    ctx.shadowBlur = 8;
+
+    ctx.beginPath();
+
+    ctx.ellipse(
+      -bodyW * 0.20,
+      bodyTop + 4,
       4,
-      5,
+      2,
+      0,
+      0,
+      Math.PI * 2,
+    );
+
+    ctx.ellipse(
+      bodyW * 0.20,
+      bodyTop + 4,
       4,
-      1,
+      2,
+      0,
+      0,
+      Math.PI * 2,
     );
 
     ctx.fill();
@@ -1560,9 +1841,6 @@ function drawVehicle(
    * ============================================================
    * BOOST EXHAUST
    * ============================================================
-   *
-   * Exhaust is behind vehicle (-X).
-   * After rotation it points toward the bottom/rear.
    */
 
   if (
@@ -1574,40 +1852,100 @@ function drawVehicle(
 
     const plume =
       ctx.createLinearGradient(
-        -bodyW - 50,
         0,
-        -bodyW,
+        34,
         0,
+        105,
       );
 
     plume.addColorStop(
       0,
-      "rgba(64,204,255,0)",
+      "rgba(208,250,255,0.85)",
     );
 
     plume.addColorStop(
-      0.65,
-      "rgba(70,217,255,0.23)",
+      0.20,
+      "rgba(70,220,255,0.72)",
+    );
+
+    plume.addColorStop(
+      0.62,
+      "rgba(37,157,255,0.24)",
     );
 
     plume.addColorStop(
       1,
-      "rgba(197,250,255,0.7)",
+      "rgba(40,150,255,0)",
     );
 
-    ctx.fillStyle = plume;
+    ctx.fillStyle =
+      plume;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+      -9,
+      34,
+    );
+
+    ctx.quadraticCurveTo(
+      -14,
+      63,
+      -7,
+      98,
+    );
+
+    ctx.quadraticCurveTo(
+      0,
+      108,
+      7,
+      98,
+    );
+
+    ctx.quadraticCurveTo(
+      14,
+      63,
+      9,
+      34,
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+    const core =
+      ctx.createLinearGradient(
+        0,
+        35,
+        0,
+        75,
+      );
+
+    core.addColorStop(
+      0,
+      "rgba(255,255,255,0.9)",
+    );
+
+    core.addColorStop(
+      0.5,
+      "rgba(84,236,255,0.7)",
+    );
+
+    core.addColorStop(
+      1,
+      "rgba(84,236,255,0)",
+    );
+
+    ctx.fillStyle =
+      core;
 
     ctx.beginPath();
 
     ctx.ellipse(
-      -bodyW - 22,
-      7,
-      36 +
-        Math.min(
-          35,
-          speed * 0.12,
-        ),
-      7,
+      0,
+      55,
+      5,
+      24,
       0,
       0,
       Math.PI * 2,
@@ -1638,7 +1976,8 @@ export default function GameCanvas({
       height,
     });
 
-  stateRef.current = state;
+  stateRef.current =
+    state;
 
   dimensionsRef.current = {
     width,
@@ -1676,7 +2015,8 @@ export default function GameCanvas({
       const {
         width: w,
         height: h,
-      } = dimensionsRef.current;
+      } =
+        dimensionsRef.current;
 
       canvas.width =
         Math.max(
@@ -1771,9 +2111,7 @@ export default function GameCanvas({
       );
 
       /*
-       * ========================================================
-       * CINEMATIC GRAPHITE SKY
-       * ========================================================
+       * GRAPHITE SKY
        */
 
       const sky =
@@ -1804,7 +2142,8 @@ export default function GameCanvas({
         "#020508",
       );
 
-      ctx.fillStyle = sky;
+      ctx.fillStyle =
+        sky;
 
       ctx.fillRect(
         0,
@@ -1814,7 +2153,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Distant light bloom
+       * DISTANT LIGHT
        */
 
       const bloom =
@@ -1842,7 +2181,8 @@ export default function GameCanvas({
         "rgba(0,0,0,0)",
       );
 
-      ctx.fillStyle = bloom;
+      ctx.fillStyle =
+        bloom;
 
       ctx.fillRect(
         0,
@@ -1852,7 +2192,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Atmospheric particles
+       * ATMOSPHERIC PARTICLES
        */
 
       for (
@@ -1898,7 +2238,7 @@ export default function GameCanvas({
       }
 
       /*
-       * City
+       * CITY
        */
 
       drawCity(
@@ -1910,7 +2250,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Atmospheric fog
+       * FOG
        */
 
       const fog =
@@ -1936,7 +2276,8 @@ export default function GameCanvas({
         "rgba(4,13,21,0)",
       );
 
-      ctx.fillStyle = fog;
+      ctx.fillStyle =
+        fog;
 
       ctx.fillRect(
         0,
@@ -1946,7 +2287,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Road
+       * ROAD
        */
 
       drawRoad(
@@ -1961,11 +2302,8 @@ export default function GameCanvas({
       );
 
       /*
-       * Moving side light bars
+       * SIDE LIGHT BARS
        */
-
-      const roadTop =
-        horizon;
 
       for (
         let i = 0;
@@ -1981,12 +2319,12 @@ export default function GameCanvas({
           1;
 
         const y =
-          roadTop +
+          horizon +
           Math.pow(
             p,
             1.65,
           ) *
-            (h - roadTop);
+            (h - horizon);
 
         const roadHalf =
           w *
@@ -2029,7 +2367,7 @@ export default function GameCanvas({
       }
 
       /*
-       * Engine particles
+       * ENGINE PARTICLES
        */
 
       for (
@@ -2046,12 +2384,12 @@ export default function GameCanvas({
           );
 
         const px =
-          w * 0.23 +
+          w * 0.5 +
           (p.x || 0) *
             0.22;
 
         const py =
-          h * 0.72 +
+          h * 0.78 +
           (p.y || 0) *
             0.28;
 
@@ -2091,19 +2429,24 @@ export default function GameCanvas({
       }
 
       /*
-       * Vehicle camera sway
+       * VEHICLE
+       *
+       * CENTER OF ROAD
+       * NEAR PLAYER
        */
 
       const vehicleX =
-        w *
-        (0.235 +
-          Math.sin(
-            time * 0.00065,
-          ) *
-            0.003);
+        w * 0.5 +
+        Math.sin(
+          time * 0.00065,
+        ) *
+          Math.min(
+            7,
+            speed * 0.02,
+          );
 
       const vehicleY =
-        h * 0.755 +
+        h * 0.82 +
         Math.sin(
           time * 0.006,
         ) *
@@ -2143,7 +2486,7 @@ export default function GameCanvas({
       ctx.restore();
 
       /*
-       * Cinematic vignette
+       * VIGNETTE
        */
 
       const vignette =
@@ -2185,7 +2528,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Cinematic frame
+       * FRAME
        */
 
       ctx.strokeStyle =
@@ -2201,7 +2544,7 @@ export default function GameCanvas({
       );
 
       /*
-       * Small telemetry marks
+       * TELEMETRY
        */
 
       ctx.save();
@@ -2241,7 +2584,7 @@ export default function GameCanvas({
       ctx.restore();
 
       /*
-       * Pause / game-over overlay
+       * PAUSE / GAME OVER
        */
 
       if (
