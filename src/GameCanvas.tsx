@@ -237,22 +237,13 @@ function drawVehicle(
   speed: number,
   boost: boolean,
   time: number,
-  gameOver: boolean,
+  crashed: boolean,
 ) {
-  /*
-    REAR CAMERA VEHICLE
-    - centered
-    - straight ahead
-    - smaller proportional wheels
-    - deeper 3D body
-    - premium futuristic materials
-  */
-
   const scale = Math.max(
-    1.05,
+    1.0,
     Math.min(
-      1.7,
-      Math.min(window.innerWidth, window.innerHeight) / 500,
+      1.55,
+      Math.min(window.innerWidth, window.innerHeight) / 650,
     ),
   );
 
@@ -260,950 +251,494 @@ function drawVehicle(
   ctx.translate(x, y);
   ctx.scale(scale, scale);
 
-  const suspension =
-    Math.sin(time * 0.006) * Math.min(1.4, speed / 90);
+  // Keep vehicle straight on the road. No sideways rotation.
+  const bob = Math.sin(time * 0.006) * Math.min(1.2, speed / 100);
+  ctx.translate(0, bob);
 
-  ctx.translate(0, suspension);
+  const bike = vehicle === "bike";
+  const truck = vehicle === "truck";
+  const sports = vehicle === "sports-car";
+  const supercar = vehicle === "supercar";
 
-  const isBike = vehicle === "bike";
-  const isTruck = vehicle === "truck";
+  const bodyW = bike ? 58 : truck ? 112 : 118;
+  const bodyH = bike ? 68 : truck ? 72 : 70;
+  const accent = boost ? "#aefcff" : "#64e7fa";
 
-  const carWidth = isTruck ? 104 : 96;
-  const carHeight = isTruck ? 62 : 60;
-
-  const accent = boost ? "#b9ffff" : "#69eaff";
-
-  /* -----------------------------
-     soft contact shadow
-  ----------------------------- */
-
+  // Ground contact shadow.
   ctx.save();
-  ctx.globalAlpha = 0.7;
-
-  const shadow = ctx.createRadialGradient(
-    0,
-    38,
-    2,
-    0,
-    38,
-    isBike ? 40 : 72,
-  );
-
+  const shadow = ctx.createRadialGradient(0, 37, 2, 0, 37, bodyW * 0.72);
   shadow.addColorStop(
     0,
     boost
-      ? "rgba(61,224,255,0.24)"
-      : "rgba(48,170,205,0.14)",
+      ? "rgba(65,226,255,0.24)"
+      : "rgba(45,164,195,0.16)",
   );
-
-  shadow.addColorStop(
-    1,
-    "rgba(0,0,0,0)",
-  );
-
+  shadow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = shadow;
-
   ctx.beginPath();
-  ctx.ellipse(
-    0,
-    39,
-    isBike ? 32 : 62,
-    isBike ? 9 : 12,
-    0,
-    0,
-    Math.PI * 2,
-  );
+  ctx.ellipse(0, 39, bodyW * 0.58, 10, 0, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.restore();
 
-  /* -----------------------------
-     speed trails behind vehicle
-  ----------------------------- */
-
-  if (speed > 18 && !gameOver) {
+  // Forward speed trails stay behind the vehicle, never sideways.
+  if (speed > 10 && !crashed) {
     ctx.save();
-    ctx.globalAlpha = Math.min(0.42, speed / 650);
-
+    ctx.globalAlpha = Math.min(0.42, speed / 300);
     for (let i = 0; i < 7; i++) {
-      const offsetX =
-        isBike
-          ? (i - 3) * 3
-          : (i - 3) * 10;
-
-      const startY = 27 + i * 2;
-      const length =
-        24 +
-        ((time * 0.06 + i * 17) % 45) *
-          (speed / 160);
-
+      const xOffset = bike ? (i - 3) * 3 : (i - 3) * 10;
+      const length = 22 + ((time * 0.08 + i * 17) % 42) * (speed / 140);
       const trail = ctx.createLinearGradient(
-        0,
-        startY,
-        0,
-        startY + length,
+        xOffset,
+        bodyH * 0.30,
+        xOffset,
+        bodyH * 0.30 + length,
       );
-
-      trail.addColorStop(
-        0,
-        "rgba(91,230,255,0.55)",
-      );
-
-      trail.addColorStop(
-        1,
-        "rgba(91,230,255,0)",
-      );
-
+      trail.addColorStop(0, "rgba(78,225,255,0.55)");
+      trail.addColorStop(1, "rgba(78,225,255,0)");
       ctx.strokeStyle = trail;
       ctx.lineWidth = i % 2 ? 1 : 1.5;
-
       ctx.beginPath();
-      ctx.moveTo(offsetX, startY);
-      ctx.lineTo(offsetX, startY + length);
+      ctx.moveTo(xOffset, bodyH * 0.28);
+      ctx.lineTo(xOffset, bodyH * 0.28 + length);
       ctx.stroke();
     }
-
     ctx.restore();
   }
 
-  /* =========================================================
-     BIKE — PREMIUM REAR VIEW
-  ========================================================= */
+  if (bike) {
+    // ---------------- MOTORCYCLE - DIRECT REAR VIEW ----------------
+    // Narrow rear tyre, centered chassis, no side-facing elements.
+    ctx.save();
 
-  if (isBike) {
-    /*
-      Bike stays narrow and centered.
-      Tire is intentionally smaller than previous version.
-    */
-
-    /* rear tire */
-
-    ctx.fillStyle = "#020407";
-
+    ctx.fillStyle = "#020406";
     ctx.beginPath();
-    ctx.ellipse(
-      0,
-      18,
-      12,
-      23,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    ctx.ellipse(0, 24, 11, 25, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "#718d9a";
+    ctx.strokeStyle = "#91aeb9";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    /* wheel rim */
-
-    ctx.strokeStyle = "rgba(128,235,255,0.78)";
-    ctx.lineWidth = 1.5;
-
+    ctx.strokeStyle = "rgba(105,232,250,0.72)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.ellipse(
-      0,
-      18,
-      6,
-      16,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    ctx.ellipse(0, 24, 6, 18, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = "#172d39";
+    ctx.fillStyle = "#203d4b";
     ctx.beginPath();
-    ctx.ellipse(
-      0,
-      18,
-      2.5,
-      8,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    ctx.arc(0, 24, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    /* rear body */
-
-    const bikeBody = ctx.createLinearGradient(
-      -18,
-      -34,
-      18,
-      25,
-    );
-
-    bikeBody.addColorStop(0, "#a9dfe9");
-    bikeBody.addColorStop(0.10, "#3d7181");
-    bikeBody.addColorStop(0.42, "#172f3d");
-    bikeBody.addColorStop(0.78, "#0a141c");
-    bikeBody.addColorStop(1, "#03070b");
+    // Rear fairing.
+    const bikeBody = ctx.createLinearGradient(0, -42, 0, 25);
+    bikeBody.addColorStop(0, "#d8f7fb");
+    bikeBody.addColorStop(0.12, "#507b8b");
+    bikeBody.addColorStop(0.38, "#173341");
+    bikeBody.addColorStop(0.82, "#09151d");
+    bikeBody.addColorStop(1, "#030609");
 
     ctx.fillStyle = bikeBody;
-
     polygon(ctx, [
-      [-13, -21],
-      [-9, -32],
-      [9, -32],
-      [13, -21],
-      [15, 10],
-      [8, 20],
-      [0, 24],
-      [-8, 20],
-      [-15, 10],
+      [-12, -28],
+      [-8, -40],
+      [8, -40],
+      [12, -28],
+      [16, 9],
+      [9, 20],
+      [0, 25],
+      [-9, 20],
+      [-16, 9],
     ]);
-
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(154,241,255,0.78)";
-    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = "rgba(156,240,253,0.80)";
+    ctx.lineWidth = 1.4;
     ctx.stroke();
 
-    /* seat / rider silhouette */
-
-    ctx.fillStyle = "#050a0f";
-
-    roundedRect(
-      ctx,
-      -7,
-      -31,
-      14,
-      20,
-      5,
-    );
-
+    // Rear seat / rider silhouette.
+    ctx.fillStyle = "#05090d";
+    roundedRect(ctx, -8, -29, 16, 13, 5);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(103,219,241,0.35)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    /* helmet */
-
-    const helmet = ctx.createLinearGradient(
-      -7,
-      -48,
-      7,
-      -37,
-    );
-
-    helmet.addColorStop(0, "#b9f4fa");
-    helmet.addColorStop(0.28, "#466f7d");
-    helmet.addColorStop(1, "#071119");
-
-    ctx.fillStyle = helmet;
-
+    ctx.fillStyle = "#101c25";
     ctx.beginPath();
-    ctx.ellipse(
-      0,
-      -42,
-      7,
-      7,
-      0,
-      0,
-      Math.PI * 2,
-    );
+    ctx.ellipse(0, -40, 8, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(141,235,251,0.55)";
+    ctx.strokeStyle = "rgba(140,229,246,0.48)";
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    /* helmet visor */
-
-    ctx.fillStyle = "rgba(3,12,18,0.9)";
-
-    roundedRect(
-      ctx,
-      -5,
-      -44,
-      10,
-      3,
-      1,
-    );
-
+    ctx.fillStyle = "#071219";
+    roundedRect(ctx, -6, -42, 12, 4, 2);
     ctx.fill();
 
-    /* tail light */
-
+    // Tail light.
     ctx.save();
+    ctx.shadowColor = "#ff3e58";
+    ctx.shadowBlur = boost ? 18 : 10;
+    ctx.fillStyle = "#ff4058";
+    roundedRect(ctx, -8, -4, 16, 5, 2);
+    ctx.fill();
+    ctx.restore();
 
-    ctx.shadowColor = "#ff3f58";
-    ctx.shadowBlur = boost ? 18 : 11;
-
-    ctx.fillStyle = "#ff4159";
-
-    roundedRect(
-      ctx,
-      -7,
-      0,
-      14,
-      5,
-      2,
-    );
-
+    ctx.fillStyle = "#ffdfe3";
+    roundedRect(ctx, -2, -4, 4, 5, 1);
     ctx.fill();
 
     ctx.restore();
-
-    /* indicators */
-
-    ctx.fillStyle = "#ffb36a";
-    ctx.shadowColor = "#ff9e55";
-    ctx.shadowBlur = 5;
-
-    roundedRect(
-      ctx,
-      -13,
-      2,
-      3,
-      3,
-      1,
-    );
-
-    ctx.fill();
-
-    roundedRect(
-      ctx,
-      10,
-      2,
-      3,
-      3,
-      1,
-    );
-
-    ctx.fill();
-
-    ctx.shadowBlur = 0;
-
-    /* side cyan strips */
-
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 1.3;
-
-    ctx.beginPath();
-
-    ctx.moveTo(-12, -12);
-    ctx.lineTo(-13, 9);
-
-    ctx.moveTo(12, -12);
-    ctx.lineTo(13, 9);
-
-    ctx.stroke();
   } else {
-    /* =====================================================
-       CAR / TRUCK — PREMIUM REAR VIEW
-    ===================================================== */
+    // ---------------- CAR / TRUCK - DIRECT REAR VIEW ----------------
+    // Everything is symmetrical around x=0, so vehicle is visibly facing
+    // straight down the road rather than looking left/right.
 
-    const width = carWidth;
-    const height = carHeight;
+    const bodyTop = truck ? -31 : -35;
+    const bodyBottom = 31;
+    const bodyLeft = -bodyW / 2;
+    const bodyRight = bodyW / 2;
 
-    /* rear body shell */
-
-    const body = ctx.createLinearGradient(
+    const bodyGradient = ctx.createLinearGradient(
       0,
-      -height / 2,
+      bodyTop,
       0,
-      height / 2,
+      bodyBottom,
     );
 
-    body.addColorStop(0, "#e5f7fa");
-    body.addColorStop(
-      0.08,
-      vehicle === "sports-car"
-        ? "#bd4b58"
-        : vehicle === "supercar"
-          ? "#7279dc"
-          : vehicle === "truck"
-            ? "#4b8ea8"
-            : "#4c7180",
-    );
+    if (sports) {
+      bodyGradient.addColorStop(0, "#dfe8ff");
+      bodyGradient.addColorStop(0.08, "#b64c61");
+      bodyGradient.addColorStop(0.32, "#542333");
+      bodyGradient.addColorStop(0.72, "#171923");
+      bodyGradient.addColorStop(1, "#05070b");
+    } else if (supercar) {
+      bodyGradient.addColorStop(0, "#eef2ff");
+      bodyGradient.addColorStop(0.08, "#7779e4");
+      bodyGradient.addColorStop(0.34, "#30345f");
+      bodyGradient.addColorStop(0.72, "#151a2a");
+      bodyGradient.addColorStop(1, "#05070c");
+    } else if (truck) {
+      bodyGradient.addColorStop(0, "#d7f4fb");
+      bodyGradient.addColorStop(0.08, "#4d91a9");
+      bodyGradient.addColorStop(0.34, "#21495c");
+      bodyGradient.addColorStop(0.72, "#10222c");
+      bodyGradient.addColorStop(1, "#05090d");
+    } else {
+      bodyGradient.addColorStop(0, "#e1f3f6");
+      bodyGradient.addColorStop(0.08, "#517888");
+      bodyGradient.addColorStop(0.34, "#263e4c");
+      bodyGradient.addColorStop(0.72, "#111e27");
+      bodyGradient.addColorStop(1, "#05080c");
+    }
 
-    body.addColorStop(0.36, "#203e4d");
-    body.addColorStop(0.70, "#0d1c26");
-    body.addColorStop(1, "#03070b");
+    ctx.fillStyle = bodyGradient;
 
-    ctx.fillStyle = body;
-
-    if (isTruck) {
+    if (truck) {
       polygon(ctx, [
-        [-width / 2, -25],
-        [width / 2, -25],
-        [width / 2 - 5, 27],
-        [-width / 2 + 5, 27],
+        [bodyLeft + 4, -27],
+        [bodyRight - 4, -27],
+        [bodyRight, 23],
+        [bodyRight - 8, bodyBottom],
+        [bodyLeft + 8, bodyBottom],
+        [bodyLeft, 23],
+      ]);
+    } else if (sports) {
+      polygon(ctx, [
+        [-48, -25],
+        [-36, -36],
+        [36, -36],
+        [48, -25],
+        [54, 16],
+        [43, 29],
+        [-43, 29],
+        [-54, 16],
+      ]);
+    } else if (supercar) {
+      polygon(ctx, [
+        [-51, -23],
+        [-37, -36],
+        [37, -36],
+        [51, -23],
+        [55, 16],
+        [40, 30],
+        [-40, 30],
+        [-55, 16],
       ]);
     } else {
-      /* wider shoulder, narrow lower diffuser */
       polygon(ctx, [
-        [-34, -27],
-        [-25, -35],
-        [25, -35],
-        [34, -27],
-        [44, 18],
-        [35, 29],
-        [-35, 29],
-        [-44, 18],
+        [-48, -25],
+        [-35, -35],
+        [35, -35],
+        [48, -25],
+        [52, 17],
+        [42, 30],
+        [-42, 30],
+        [-52, 17],
       ]);
     }
 
     ctx.fill();
 
-    /* outer body highlight */
-
-    ctx.strokeStyle = "rgba(157,240,255,0.86)";
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(155,241,253,0.86)";
+    ctx.lineWidth = 1.6;
     ctx.stroke();
 
-    /* shoulder highlight */
+    // Upper rear glass - wide and symmetrical.
+    const glassGradient = ctx.createLinearGradient(
+      0,
+      -31,
+      0,
+      -3,
+    );
 
-    ctx.strokeStyle = "rgba(255,255,255,0.16)";
+    glassGradient.addColorStop(0, "#aeeaf2");
+    glassGradient.addColorStop(0.13, "#4c7583");
+    glassGradient.addColorStop(0.48, "#1a3542");
+    glassGradient.addColorStop(1, "#07131b");
+
+    ctx.fillStyle = glassGradient;
+
+    if (truck) {
+      roundedRect(ctx, -43, -22, 86, 28, 4);
+    } else {
+      polygon(ctx, [
+        [-34, -28],
+        [34, -28],
+        [43, -6],
+        [-43, -6],
+      ]);
+    }
+
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(181,243,251,0.60)";
     ctx.lineWidth = 1;
-
-    ctx.beginPath();
-    ctx.moveTo(-32, -27);
-    ctx.lineTo(-22, -33);
-    ctx.lineTo(22, -33);
-    ctx.lineTo(32, -27);
     ctx.stroke();
 
-    /* rear window */
+    // Rear-window split and subtle reflection.
+    ctx.strokeStyle = "rgba(220,250,255,0.20)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -27);
+    ctx.lineTo(0, -7);
+    ctx.stroke();
 
-    if (isTruck) {
-      const truckGlass = ctx.createLinearGradient(
-        0,
-        -20,
-        0,
-        8,
-      );
+    ctx.strokeStyle = "rgba(255,255,255,0.22)";
+    ctx.beginPath();
+    ctx.moveTo(-26, -25);
+    ctx.lineTo(17, -25);
+    ctx.stroke();
 
-      truckGlass.addColorStop(
-        0,
-        "#5f8e9e",
-      );
+    // Shoulder lines create real body depth.
+    ctx.strokeStyle = "rgba(141,226,241,0.32)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-44, -4);
+    ctx.lineTo(-49, 18);
+    ctx.moveTo(44, -4);
+    ctx.lineTo(49, 18);
+    ctx.stroke();
 
-      truckGlass.addColorStop(
-        0.25,
-        "#1d3948",
-      );
-
-      truckGlass.addColorStop(
-        1,
-        "#07131b",
-      );
-
-      ctx.fillStyle = truckGlass;
-
-      roundedRect(
-        ctx,
-        -34,
-        -19,
-        68,
-        27,
-        3,
-      );
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        "rgba(161,235,248,0.52)";
-
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      ctx.strokeStyle =
-        "rgba(190,243,250,0.16)";
-
-      ctx.beginPath();
-      ctx.moveTo(0, -18);
-      ctx.lineTo(0, 7);
-      ctx.stroke();
-    } else {
-      const glass = ctx.createLinearGradient(
-        0,
-        -31,
-        0,
-        -7,
-      );
-
-      glass.addColorStop(
-        0,
-        "#b9f2f7",
-      );
-
-      glass.addColorStop(
-        0.18,
-        "#527b88",
-      );
-
-      glass.addColorStop(
-        0.56,
-        "#193441",
-      );
-
-      glass.addColorStop(
-        1,
-        "#07131b",
-      );
-
-      ctx.fillStyle = glass;
-
-      polygon(ctx, [
-        [-24, -28],
-        [24, -28],
-        [31, -9],
-        [-31, -9],
-      ]);
-
-      ctx.fill();
-
-      ctx.strokeStyle =
-        "rgba(185,245,252,0.65)";
-
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      /* rear window split */
-
-      ctx.strokeStyle =
-        "rgba(213,249,255,0.20)";
-
-      ctx.beginPath();
-      ctx.moveTo(0, -27);
-      ctx.lineTo(0, -10);
-      ctx.stroke();
-
-      /* glass reflection */
-
-      ctx.strokeStyle =
-        "rgba(255,255,255,0.18)";
-
-      ctx.beginPath();
-      ctx.moveTo(-19, -25);
-      ctx.lineTo(8, -25);
-      ctx.stroke();
-    }
-
-    /* ===================================================
-       TAIL LIGHTS
-    =================================================== */
-
+    // Wide LED tail lamps.
     ctx.save();
+    ctx.shadowColor = "#ff3652";
+    ctx.shadowBlur = boost ? 22 : 14;
+    ctx.fillStyle = "#ff3f58";
 
-    ctx.shadowColor = "#ff344f";
-    ctx.shadowBlur = boost ? 20 : 13;
-
-    /* left lamp */
-
-    ctx.fillStyle = "#ff3f57";
-
-    roundedRect(
-      ctx,
-      isTruck ? -40 : -37,
-      -2,
-      isTruck ? 28 : 24,
-      7,
-      3,
-    );
-
-    ctx.fill();
-
-    /* right lamp */
-
-    roundedRect(
-      ctx,
-      isTruck ? 12 : 13,
-      -2,
-      isTruck ? 28 : 24,
-      7,
-      3,
-    );
-
-    ctx.fill();
+    if (truck) {
+      roundedRect(ctx, -45, 1, 31, 8, 3);
+      ctx.fill();
+      roundedRect(ctx, 14, 1, 31, 8, 3);
+      ctx.fill();
+    } else {
+      roundedRect(ctx, -43, 1, 34, 8, 3);
+      ctx.fill();
+      roundedRect(ctx, 9, 1, 34, 8, 3);
+      ctx.fill();
+    }
 
     ctx.restore();
 
-    /* LED inner highlights */
-
-    ctx.fillStyle =
-      "rgba(255,190,197,0.80)";
-
-    roundedRect(
-      ctx,
-      isTruck ? -35 : -33,
-      0,
-      isTruck ? 18 : 15,
-      2,
-      1,
-    );
-
+    // LED highlights.
+    ctx.fillStyle = "rgba(255,213,218,0.82)";
+    roundedRect(ctx, -37, 2, 18, 2, 1);
+    ctx.fill();
+    roundedRect(ctx, 19, 2, 18, 2, 1);
     ctx.fill();
 
-    roundedRect(
-      ctx,
-      isTruck ? 17 : 18,
-      0,
-      isTruck ? 18 : 15,
-      2,
-      1,
-    );
-
+    // Center brake strip.
+    ctx.save();
+    ctx.shadowColor = "#ff3e57";
+    ctx.shadowBlur = 9;
+    ctx.fillStyle = "#ff5268";
+    roundedRect(ctx, -4, 1, 8, 7, 2);
     ctx.fill();
+    ctx.restore();
 
-    /* center brake LED */
-
-    ctx.fillStyle = "#fff0f2";
-
-    roundedRect(
-      ctx,
-      -2,
-      -2,
-      4,
-      7,
-      1.5,
-    );
-
-    ctx.fill();
-
-    /* ===================================================
-       LOWER BUMPER
-    =================================================== */
-
-    const bumperGradient =
-      ctx.createLinearGradient(
-        0,
-        7,
-        0,
-        30,
-      );
-
-    bumperGradient.addColorStop(
+    // Lower bumper.
+    const bumper = ctx.createLinearGradient(
       0,
-      "#152a35",
+      8,
+      0,
+      32,
     );
+    bumper.addColorStop(0, "#1a303b");
+    bumper.addColorStop(0.5, "#09151d");
+    bumper.addColorStop(1, "#020508");
 
-    bumperGradient.addColorStop(
-      0.55,
-      "#071119",
-    );
-
-    bumperGradient.addColorStop(
-      1,
-      "#020507",
-    );
-
-    ctx.fillStyle =
-      bumperGradient;
+    ctx.fillStyle = bumper;
 
     polygon(ctx, [
-      [-(width / 2 - 10), 8],
-      [-(width / 2 - 18), 27],
-      [-22, 31],
-      [22, 31],
-      [width / 2 - 18, 27],
-      [width / 2 - 10, 8],
+      [bodyLeft + 8, 8],
+      [bodyLeft + 14, 27],
+      [-23, 33],
+      [23, 33],
+      [bodyRight - 14, 27],
+      [bodyRight - 8, 8],
     ]);
 
     ctx.fill();
 
-    /* bumper edge */
-
-    ctx.strokeStyle =
-      "rgba(111,222,241,0.48)";
-
+    ctx.strokeStyle = "rgba(112,225,243,0.46)";
     ctx.lineWidth = 1;
-
     ctx.beginPath();
-    ctx.moveTo(
-      -(width / 2 - 17),
-      27,
-    );
-    ctx.quadraticCurveTo(
-      0,
-      34,
-      width / 2 - 17,
-      27,
-    );
+    ctx.moveTo(bodyLeft + 14, 27);
+    ctx.quadraticCurveTo(0, 34, bodyRight - 14, 27);
     ctx.stroke();
 
-    /* diffuser */
-
+    // Sport diffuser.
     ctx.fillStyle = "#020406";
-
     polygon(ctx, [
-      [-24, 25],
-      [-16, 33],
-      [16, 33],
-      [24, 25],
-      [15, 29],
-      [-15, 29],
+      [-25, 27],
+      [-17, 35],
+      [-8, 30],
+      [0, 35],
+      [8, 30],
+      [17, 35],
+      [25, 27],
+      [16, 30],
+      [-16, 30],
     ]);
-
     ctx.fill();
 
-    /* exhausts */
-
-    if (!isTruck) {
-      for (
-        const exhaustX of [-21, 21]
-      ) {
-        ctx.fillStyle = "#020304";
-
+    // Exhausts for performance cars.
+    if (!truck) {
+      for (const ex of [-27, 27]) {
+        ctx.fillStyle = "#010203";
         ctx.beginPath();
-
-        ctx.ellipse(
-          exhaustX,
-          27,
-          4,
-          2.5,
-          0,
-          0,
-          Math.PI * 2,
-        );
-
+        ctx.ellipse(ex, 28, 5, 3, 0, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.strokeStyle =
-          "rgba(105,170,183,0.55)";
-
+        ctx.strokeStyle = "rgba(125,177,189,0.60)";
         ctx.lineWidth = 1;
-
         ctx.stroke();
+
+        if (boost && speed > 15) {
+          ctx.save();
+          ctx.shadowColor = "#59ddff";
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = "rgba(137,240,255,0.75)";
+          ctx.beginPath();
+          ctx.ellipse(ex, 31, 3, 5, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
     }
 
-    /* ===================================================
-       WHEELS
-       smaller + integrated into body
-    =================================================== */
+    // Properly proportioned rear wheels, tucked into body.
+    const wheelX = truck ? 48 : 45;
+    const wheelY = 22;
 
-    const wheelY = 20;
-    const wheelX =
-      isTruck ? 44 : 38;
-
-    const drawWheel = (
-      wheelXPosition: number,
-    ) => {
-      /* tire */
-
+    const drawWheel = (wx: number) => {
       ctx.fillStyle = "#020305";
-
       ctx.beginPath();
-
-      ctx.ellipse(
-        wheelXPosition,
-        wheelY,
-        8,
-        12,
-        0,
-        0,
-        Math.PI * 2,
-      );
-
+      ctx.ellipse(wx, wheelY, 10, 14, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      /* tire edge */
-
-      ctx.strokeStyle =
-        "rgba(135,164,174,0.85)";
-
+      ctx.strokeStyle = "#91aab6";
       ctx.lineWidth = 1.8;
       ctx.stroke();
 
-      /* rim */
-
-      const rim =
-        ctx.createRadialGradient(
-          wheelXPosition,
-          wheelY,
-          1,
-          wheelXPosition,
-          wheelY,
-          6,
-        );
-
-      rim.addColorStop(
-        0,
-        "#6b9aa9",
-      );
-
-      rim.addColorStop(
-        0.35,
-        "#213c48",
-      );
-
-      rim.addColorStop(
+      const rim = ctx.createRadialGradient(
+        wx,
+        wheelY,
         1,
-        "#071018",
+        wx,
+        wheelY,
+        8,
       );
+      rim.addColorStop(0, "#6f9baa");
+      rim.addColorStop(0.32, "#294652");
+      rim.addColorStop(1, "#071018");
 
       ctx.fillStyle = rim;
-
       ctx.beginPath();
-
-      ctx.ellipse(
-        wheelXPosition,
-        wheelY,
-        5,
-        8,
-        0,
-        0,
-        Math.PI * 2,
-      );
-
+      ctx.ellipse(wx, wheelY, 6.5, 9, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.strokeStyle =
-        "rgba(114,230,249,0.48)";
-
+      ctx.strokeStyle = "rgba(113,230,248,0.42)";
       ctx.lineWidth = 1;
-
       ctx.stroke();
 
-      /* hub */
-
-      ctx.fillStyle =
-        "#07141c";
-
+      ctx.fillStyle = "#07131b";
       ctx.beginPath();
-
-      ctx.arc(
-        wheelXPosition,
-        wheelY,
-        2,
-        0,
-        Math.PI * 2,
-      );
-
+      ctx.arc(wx, wheelY, 2.5, 0, Math.PI * 2);
       ctx.fill();
-
-      /* subtle rim spoke */
-
-      ctx.strokeStyle =
-        "rgba(185,238,247,0.35)";
-
-      ctx.lineWidth = 0.8;
-
-      ctx.beginPath();
-
-      ctx.moveTo(
-        wheelXPosition - 3,
-        wheelY,
-      );
-
-      ctx.lineTo(
-        wheelXPosition + 3,
-        wheelY,
-      );
-
-      ctx.stroke();
     };
 
     drawWheel(-wheelX);
     drawWheel(wheelX);
 
-    /* cyan side reflection */
-
-    ctx.strokeStyle =
-      accent;
-
+    // Cyan body edge highlights.
+    ctx.strokeStyle = accent;
+    ctx.globalAlpha = 0.62;
     ctx.lineWidth = 1;
-
-    ctx.globalAlpha = 0.6;
-
     ctx.beginPath();
-
-    ctx.moveTo(
-      -width / 2 + 8,
-      -14,
-    );
-
-    ctx.lineTo(
-      -width / 2 + 13,
-      13,
-    );
-
-    ctx.moveTo(
-      width / 2 - 8,
-      -14,
-    );
-
-    ctx.lineTo(
-      width / 2 - 13,
-      13,
-    );
-
+    ctx.moveTo(bodyLeft + 10, -2);
+    ctx.lineTo(bodyLeft + 15, 17);
+    ctx.moveTo(bodyRight - 10, -2);
+    ctx.lineTo(bodyRight - 15, 17);
     ctx.stroke();
-
     ctx.globalAlpha = 1;
   }
 
-  /* =========================================================
-     BOOST EXHAUST / ROAD GLOW
-  ========================================================= */
-
-  if (
-    boost &&
-    speed > 10 &&
-    !gameOver
-  ) {
+  // Vertical boost plume = vehicle accelerating forward.
+  if (boost && speed > 10 && !crashed) {
     ctx.save();
+    ctx.globalCompositeOperation = "screen";
 
-    ctx.globalCompositeOperation =
-      "screen";
-
-    const plume =
-      ctx.createLinearGradient(
-        0,
-        28,
-        0,
-        95,
-      );
-
-    plume.addColorStop(
+    const plume = ctx.createLinearGradient(
       0,
-      "rgba(222,253,255,0.55)",
+      bodyH * 0.30,
+      0,
+      bodyH * 1.45,
     );
-
-    plume.addColorStop(
-      0.25,
-      "rgba(66,222,255,0.35)",
-    );
-
-    plume.addColorStop(
-      1,
-      "rgba(55,180,255,0)",
-    );
+    plume.addColorStop(0, "rgba(224,253,255,0.50)");
+    plume.addColorStop(0.24, "rgba(61,220,255,0.30)");
+    plume.addColorStop(1, "rgba(61,180,255,0)");
 
     ctx.fillStyle = plume;
-
     ctx.beginPath();
-
-    ctx.moveTo(-10, 26);
+    ctx.moveTo(-bodyW * 0.12, bodyH * 0.36);
     ctx.quadraticCurveTo(
-      -15,
-      60,
-      -5,
-      91,
+      -bodyW * 0.20,
+      bodyH * 0.82,
+      -bodyW * 0.07,
+      bodyH * 1.32,
     );
-
     ctx.quadraticCurveTo(
       0,
-      101,
-      5,
-      91,
+      bodyH * 1.48,
+      bodyW * 0.07,
+      bodyH * 1.32,
     );
-
     ctx.quadraticCurveTo(
-      15,
-      60,
-      10,
-      26,
+      bodyW * 0.20,
+      bodyH * 0.82,
+      bodyW * 0.12,
+      bodyH * 0.36,
     );
-
     ctx.closePath();
-
     ctx.fill();
 
     ctx.restore();
@@ -1316,7 +851,7 @@ export default function GameCanvas({ state, width, height }: Props) {
       // World particles from the engine.
       for (const p of s.particles || []) {
         const life = Math.max(0, Math.min(1, p.life));
-        const px = w * 0.23 + (p.x || 0) * 0.22;
+        const px = w * 0.5 + (p.x || 0) * 0.22;
         const py = h * 0.72 + (p.y || 0) * 0.28;
         ctx.save();
         ctx.globalAlpha = life * 0.7;
@@ -1330,8 +865,8 @@ export default function GameCanvas({ state, width, height }: Props) {
       }
 
       // Vehicle follows a smooth, small camera sway.
-      const vehicleX = w * (0.235 + Math.sin(time * 0.00065) * 0.003);
-      const vehicleY = h * 0.755 + Math.sin(time * 0.006) * Math.min(2, speed / 70);
+      const vehicleX = w * 0.5;
+      const vehicleY = h * 0.60 + Math.sin(time * 0.006) * Math.min(1.2, speed / 100);
       ctx.save();
       if (s.shake > 0) {
         ctx.translate((Math.sin(time * 0.08) * s.shake) * 0.22, (Math.cos(time * 0.1) * s.shake) * 0.16);
