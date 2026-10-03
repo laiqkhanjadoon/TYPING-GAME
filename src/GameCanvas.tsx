@@ -645,45 +645,88 @@ function drawVehicle(
       }
     }
 
-    // Properly proportioned rear wheels, tucked into body.
-    const wheelX = truck ? 48 : 45;
-    const wheelY = 22;
+    // Small, realistic rear wheels.
+    // IMPORTANT: vehicle position is untouched.
+    // Wheels are smaller and tucked closer to the body so they
+    // read as real tires instead of large circular side pieces.
+    const wheelX = truck ? 44 : 40;
+    const wheelY = 21;
 
     const drawWheel = (wx: number) => {
-      ctx.fillStyle = "#020305";
+      // Tire sidewall
+      ctx.fillStyle = "#010204";
       ctx.beginPath();
-      ctx.ellipse(wx, wheelY, 10, 14, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        wx,
+        wheelY,
+        7,
+        10,
+        0,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
 
-      ctx.strokeStyle = "#91aab6";
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = "rgba(132,157,167,0.72)";
+      ctx.lineWidth = 1.2;
       ctx.stroke();
 
+      // Inner rim
       const rim = ctx.createRadialGradient(
+        wx - 1,
+        wheelY - 1,
+        0.5,
         wx,
         wheelY,
-        1,
-        wx,
-        wheelY,
-        8,
+        5.5,
       );
-      rim.addColorStop(0, "#6f9baa");
-      rim.addColorStop(0.32, "#294652");
-      rim.addColorStop(1, "#071018");
+
+      rim.addColorStop(0, "#9bbbc4");
+      rim.addColorStop(0.22, "#4c6974");
+      rim.addColorStop(0.58, "#172d38");
+      rim.addColorStop(1, "#050b10");
 
       ctx.fillStyle = rim;
+
       ctx.beginPath();
-      ctx.ellipse(wx, wheelY, 6.5, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        wx,
+        wheelY,
+        4.7,
+        6.8,
+        0,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
 
-      ctx.strokeStyle = "rgba(113,230,248,0.42)";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(139,221,237,0.38)";
+      ctx.lineWidth = 0.8;
       ctx.stroke();
 
-      ctx.fillStyle = "#07131b";
+      // Hub
+      ctx.fillStyle = "#08141b";
       ctx.beginPath();
-      ctx.arc(wx, wheelY, 2.5, 0, Math.PI * 2);
+      ctx.arc(
+        wx,
+        wheelY,
+        1.7,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
+
+      ctx.strokeStyle = "rgba(208,244,250,0.32)";
+      ctx.lineWidth = 0.7;
+      ctx.stroke();
+
+      // Tiny vertical rim highlight for depth
+      ctx.strokeStyle = "rgba(210,244,250,0.20)";
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(wx, wheelY - 4.5);
+      ctx.lineTo(wx, wheelY + 4.5);
+      ctx.stroke();
     };
 
     drawWheel(-wheelX);
